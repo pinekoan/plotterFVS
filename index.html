@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2f6b3c">
+  <meta name="description" content="Offline-capable forest stand, plot, and tree inventory collection for FVS exports.">
+  <meta name="color-scheme" content="light">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="plOtter FVS">
+  <title>plOtter: Stand Exam for FVS</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="./vendor/jszip.min.js"></script>
+  <script defer src="./fvs-xlsx.js"></script>
+  <script defer src="./storage.js"></script>
+  <script defer src="./pwa.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <div class="pwa-status" aria-label="Application status">
+    <div class="pwa-status-inner">
+      <div class="status-group" role="status" aria-live="polite">
+        <span id="connectionStatus" class="status-chip">Checking connection…</span>
+        <span id="saveStatus" class="status-chip saved">Saved on device</span>
+      </div>
+      <div class="status-actions">
+        <button id="updateButton" class="status-button" type="button" hidden>Update available</button>
+        <button id="installButton" class="status-button" type="button" hidden>Install app</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="app" id="app">
+    <p class="muted">Loading saved data…</p>
+  </main>
+
+  <footer class="app-footer">
+    v1.2.0 PWA (build 2026.07.13) · Developed by the BIA Division of Forestry, Branch of Forest Inventory &amp; Planning
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="installDialog" class="app-dialog">
+    <form method="dialog">
+      <h2>Install plOtter FVS</h2>
+      <div id="installDialogBody"></div>
+      <div class="dialog-actions">
+        <button id="installDialogClose" type="submit">Close</button>
+      </div>
+    </form>
+  </dialog>
+
+  <noscript>
+    <div class="noscript-message">JavaScript is required to collect and export inventory data.</div>
+  </noscript>
+</body>
+</html>
