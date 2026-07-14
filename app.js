@@ -33,33 +33,34 @@ const VARIANTS = [
 
 // ============================================================
 //  OFFICIAL SPECIES LISTS  (from FVS Variant Overviews)
-//  [alpha code, common name, PLANTS symbol]
+//  [alpha code, common name, PLANTS symbol, scientific name]
 // ============================================================
 const OFFICIAL_SPECIES = {
-AK:[["SF","Pacific silver fir","ABAM"],["AF","subalpine fir","ABLA"],["YC","Alaska cedar","CANO9"],["TA","tamarack","LALA"],["WS","white spruce","PIGL"],["LS","hybrid spruce","PILU"],["BE","black spruce","PIMA"],["SS","Sitka spruce","PISI"],["LP","lodgepole pine","PICO"],["RC","western redcedar","THPL"],["WH","western hemlock","TSHE"],["MH","mountain hemlock","TSME"],["OS","other softwood",""],["AD","alder","ALNUS"],["RA","red alder","ALRU2"],["PB","paper birch","BEPA"],["AB","resin birch","BENE4"],["BA","balsam poplar","POBA2"],["AS","quaking aspen","POTR5"],["CW","black cottonwood","POBAT"],["WI","willow","SALIX"],["SU","Scouler's willow","SASC"],["OH","other hardwood",""]],
-BM:[["WP","western white pine","PIMO3"],["WL","western larch","LAOC"],["DF","Douglas-fir","PSME"],["GF","grand fir","ABGR"],["MH","mountain hemlock","TSME"],["WJ","western juniper","JUOC"],["LP","lodgepole pine","PICO"],["ES","Engelmann spruce","PIEN"],["AF","subalpine fir","ABLA"],["PP","ponderosa pine","PIPO"],["WB","whitebark pine","PIAL"],["LM","limber pine","PIFL2"],["PY","Pacific yew","TABR2"],["YC","Alaska cedar","CANO9"],["AS","quaking aspen","POTR5"],["CW","black cottonwood","POBAT"],["OS","other softwood",""],["OH","other hardwood",""]],
-CA:[["PC","Port Orford cedar","CHLA"],["IC","incense cedar","CADE27"],["RC","western redcedar","THPL"],["WF","white fir","ABCO"],["RF","California red fir","ABMA"],["SH","Shasta red fir","ABSH"],["DF","Douglas-fir","PSME"],["WH","western hemlock","TSHE"],["MH","mountain hemlock","TSME"],["WB","whitebark pine","PIAL"],["KP","knobcone pine","PIAT"],["LP","lodgepole pine","PICO"],["CP","Coulter pine","PICO3"],["LM","limber pine","PIFL2"],["JP","Jeffrey pine","PIJE"],["SP","sugar pine","PILA"],["WP","western white pine","PIMO3"],["PP","ponderosa pine","PIPO"],["MP","Monterey pine","PIRA2"],["GP","California foothill pine","PISA2"],["WJ","western juniper","JUOC"],["BR","Brewer spruce","PIBR"],["GS","giant sequoia","SEGI2"],["PY","Pacific yew","TABR2"],["OS","other softwood",""],["LO","California live oak","QUAG"],["CY","canyon live oak","QUCH2"],["BL","blue oak","QUDO"],["EO","Engelmann oak","QUEN"],["WO","Oregon white oak","QUGA4"],["BO","California black oak","QUKE"],["VO","valley oak","QULO"],["IO","interior live oak","QUWI2"],["BM","bigleaf maple","ACMA3"],["BU","California buckeye","AECA"],["RA","red alder","ALRU2"],["MA","Pacific madrone","ARME"],["GC","giant chinquapin","CHCHC4"],["DG","Pacific dogwood","CONU4"],["FL","Oregon ash","FRLA"],["WN","walnut","JUGLA"],["TO","tanoak","LIDE3"],["SY","California sycamore","PLRA"],["AS","quaking aspen","POTR5"],["CW","black cottonwood","POBAT"],["WI","willow","SALIX"],["CN","California nutmeg","TOCA"],["CL","California laurel","UMCA"],["OH","other hardwood",""],["RW","redwood","SESE3"]],
-CI:[["WP","western white pine","PIMO3"],["WL","western larch","LAOC"],["DF","Douglas-fir","PSME"],["GF","grand fir","ABGR"],["WH","western hemlock","TSHE"],["RC","western redcedar","THPL"],["LP","lodgepole pine","PICO"],["ES","Engelmann spruce","PIEN"],["AF","subalpine fir","ABLA"],["PP","ponderosa pine","PIPO"],["WB","whitebark pine","PIAL"],["PY","Pacific yew","TABR2"],["AS","quaking aspen","POTR5"],["WJ","western juniper","JUOC"],["MC","curl-leaf mountain mahogany","CELE3"],["LM","limber pine","PIFL2"],["CW","black cottonwood","POBAT"],["OS","other softwood",""],["OH","other hardwood",""]],
-CR:[["AF","subalpine fir","ABLA"],["CB","corkbark fir","ABLAA"],["DF","Douglas-fir","PSME"],["GF","grand fir","ABGR"],["WF","white fir","ABCO"],["MH","mountain hemlock","TSME"],["RC","western redcedar","THPL"],["WL","western larch","LAOC"],["BC","bristlecone pine","PIAR"],["LM","limber pine","PIFL2"],["LP","lodgepole pine","PICO"],["PI","twoneedle pinyon","PIED"],["PP","ponderosa pine","PIPO"],["WB","whitebark pine","PIAL"],["SW","southwestern white pine","PIST3"],["UJ","Utah juniper","JUOS"],["BS","blue spruce","PIPU"],["ES","Engelmann spruce","PIEN"],["WS","white spruce","PIGL"],["AS","quaking aspen","POTR5"],["NC","narrowleaf cottonwood","POAN3"],["PW","plains cottonwood","PODEM"],["GO","Gambel oak","QUGA"],["AW","Arizona white oak","QUAR"],["EM","Emory oak","QUEM"],["BK","bur oak","QUMA2"],["SO","silverleaf oak","QUHY"],["PB","paper birch","BEPA"],["AJ","alligator juniper","JUDE2"],["RM","Rocky Mountain juniper","JUSC2"],["OJ","oneseed juniper","JUMO"],["ER","eastern redcedar","JUVI"],["PM","singleleaf pinyon","PIMO"],["PD","border pinyon","PIDI3"],["AZ","Arizona twoneedle pinyon","PIMOF"],["CI","Chihuahuan pine","PILE"],["OS","other softwood",""],["OH","other hardwood",""]],
-CS:[["RC","eastern redcedar","JUVI"],["JU","juniper","JUNIP"],["SP","shortleaf pine","PIEC2"],["VP","Virginia pine","PIVI2"],["LP","loblolly pine","PITA"],["OS","other softwood",""],["WP","eastern white pine","PIST"],["WN","black walnut","JUNI"],["BN","butternut","JUCI"],["TL","tupelo","NYSSA"],["TS","swamp tupelo","NYBI"],["WT","water tupelo","NYAQ2"],["BG","blackgum","NYSY"],["SH","shagbark hickory","CAOV2"],["SL","shellbark hickory","CALA21"],["MH","mockernut hickory","CAAL27"],["PH","pignut hickory","CAGL8"],["HI","hickory","CARYA"],["WH","water hickory","CAAQ2"],["BH","bitternut hickory","CACO15"],["PE","pecan","CAIL2"],["BI","black hickory","CATE9"],["AB","American beech","FAGR"],["BA","black ash","FRNI"],["PA","pumpkin ash","FRPR"],["UA","blue ash","FRQU"],["EC","eastern cottonwood","PODE3"],["RM","red maple","ACRU"],["BE","boxelder","ACNE2"],["SV","silver maple","ACSA2"],["BC","black cherry","PRSE2"],["AE","American elm","ULAM"],["SG","sugarberry","CELA"],["HK","common hackberry","CEOC"],["WE","winged elm","ULAL"],["EL","elm","ULMUS"],["SI","Siberian elm","ULPU"],["RL","slippery elm","ULRU"],["RE","rock elm","ULTH"],["YP","tuliptree","LITU"],["BW","American basswood","TIAM"],["SM","sugar maple","ACSA3"],["AS","ash","FRAXI"],["WA","white ash","FRAM2"],["GA","green ash","FRPE"],["WO","white oak","QUAL"],["RO","northern red oak","QURU"],["SK","southern red oak","QUFA"],["BO","black oak","QUVE"],["SO","scarlet oak","QUCO2"],["BJ","blackjack oak","QUMA3"],["CK","chinkapin oak","QUMU"],["SW","swamp white oak","QUBI"],["BR","bur oak","QUMA2"],["SN","swamp chestnut oak","QUMI"],["PO","post oak","QUST"],["DO","bottomland post oak","QUSI2"],["CO","chestnut oak","QUPR2"],["PN","pin oak","QUPA2"],["CB","cherrybark oak","QUPA5"],["QI","shingle oak","QUIM"],["OV","overcup oak","QULY"],["WK","water oak","QUNI"],["NK","Nuttall oak","QUTE"],["WL","willow oak","QUPH"],["QS","Shumard's oak","QUSH"],["SS","sassafras","SAAL5"],["OB","Ohio buckeye","AEGL"],["CA","catalpa","CATAL"],["PS","common persimmon","DIVI5"],["HL","honeylocust","GLTR"],["BP","balsam poplar","POBA2"],["BT","bigtooth aspen","POGR4"],["QA","quaking aspen","POTR5"],["BK","black locust","ROPS"],["SY","American sycamore","PLOC"],["BY","bald cypress","TADI2"],["RB","river birch","BENI"],["SU","sweetgum","LIST2"],["WI","willow","SALIX"],["BL","black willow","SANI"],["OH","other hardwood",""],["AH","American hornbeam","CACA18"],["RD","eastern redbud","CECA4"],["DW","flowering dogwood","COFL2"],["HT","hawthorn","CRATA"],["KC","Kentucky coffeetree","GYDI"],["OO","Osage-orange","MAPO"],["CT","cucumber tree","MAAC"],["MV","sweetbay","MAVI2"],["MB","mulberry","MORUS"],["HH","hophornbeam","OSVI"],["SD","sourwood","OXAR"]],
-EC:[["WP","western white pine","PIMO3"],["WL","western larch","LAOC"],["DF","Douglas-fir","PSME"],["SF","Pacific silver fir","ABAM"],["RC","western redcedar","THPL"],["GF","grand fir","ABGR"],["LP","lodgepole pine","PICO"],["ES","Engelmann spruce","PIEN"],["AF","subalpine fir","ABLA"],["PP","ponderosa pine","PIPO"],["WH","western hemlock","TSHE"],["MH","mountain hemlock","TSME"],["PY","Pacific yew","TABR2"],["WB","whitebark pine","PIAL"],["NF","noble fir","ABPR"],["WF","white fir","ABCO"],["LL","subalpine larch","LALY"],["YC","Alaska cedar","CANO9"],["WJ","western juniper","JUOC"],["BM","bigleaf maple","ACMA3"],["VN","vine maple","ACCI"],["RA","red alder","ALRU2"],["PB","paper birch","BEPA"],["GC","giant chinquapin","CHCHC4"],["DG","Pacific dogwood","CONU4"],["AS","quaking aspen","POTR5"],["CW","black cottonwood","POBAT"],["WO","Oregon white oak","QUGA4"],["PL","plum","PRUNU"],["WI","willow","SALIX"],["OS","other softwood",""],["OH","other hardwood",""]],
-EM:[["WB","whitebark pine","PIAL"],["WL","western larch","LAOC"],["DF","Douglas-fir","PSME"],["LM","limber pine","PIFL2"],["LL","subalpine larch","LALY"],["RM","Rocky Mountain juniper","JUSC2"],["LP","lodgepole pine","PICO"],["ES","Engelmann spruce","PIEN"],["AF","subalpine fir","ABLA"],["PP","ponderosa pine","PIPO"],["GA","green ash","FRPE"],["AS","quaking aspen","POTR5"],["CW","black cottonwood","POBAT"],["BA","balsam poplar","POBA2"],["PW","plains cottonwood","PODEM"],["NC","narrowleaf cottonwood","POAN3"],["PB","paper birch","BEPA"],["OS","other softwood",""],["OH","other hardwood",""]],
-IE:[["WP","western white pine","PIMO3"],["WL","western larch","LAOC"],["DF","Douglas-fir","PSME"],["GF","grand fir","ABGR"],["WH","western hemlock","TSHE"],["RC","western redcedar","THPL"],["LP","lodgepole pine","PICO"],["ES","Engelmann spruce","PIEN"],["AF","subalpine fir","ABLA"],["PP","ponderosa pine","PIPO"],["MH","mountain hemlock","TSME"],["WB","whitebark pine","PIAL"],["LM","limber pine","PIFL2"],["LL","subalpine larch","LALY"],["PM","singleleaf pinyon","PIMO"],["RM","Rocky Mountain juniper","JUSC2"],["PY","Pacific yew","TABR2"],["AS","quaking aspen","POTR5"],["CO","cottonwood","POPUL"],["MM","Rocky Mountain maple","ACGL"],["PB","paper birch","BEPA"],["OH","other hardwood",""],["OS","other softwood",""]],
-KT:[["WP","western white pine","PIMO3"],["WL","western larch","LAOC"],["DF","Douglas-fir","PSME"],["GF","grand fir","ABGR"],["WH","western hemlock","TSHE"],["RC","western redcedar","THPL"],["LP","lodgepole pine","PICO"],["ES","Engelmann spruce","PIEN"],["AF","subalpine fir","ABLA"],["PP","ponderosa pine","PIPO"],["OT","other",""]],
-NC:[["OS","other softwood",""],["SP","sugar pine","PILA"],["DF","Douglas-fir","PSME"],["WF","white fir","ABCO"],["MA","Pacific madrone","ARME"],["IC","incense cedar","CADE27"],["BO","California black oak","QUKE"],["TO","tanoak","LIDE3"],["RF","California red fir","ABMA"],["PP","ponderosa pine","PIPO"],["OH","other hardwood",""],["RW","redwood","SESE3"]],
-LS:[["JP","jack pine","PIBA2"],["SC","Scots pine","PISY"],["RN","red pine (natural)","PIRE"],["RP","red pine (plantation)","PIRE"],["WP","eastern white pine","PIST"],["WS","white spruce","PIGL"],["NS","Norway spruce","PIAB"],["BF","balsam fir","ABBA"],["BS","black spruce","PIMA"],["TA","tamarack","LALA"],["WC","arborvitae","THOC2"],["EH","eastern hemlock","TSCA"],["OS","other softwood",""],["RC","eastern redcedar","JUVI"],["BA","black ash","FRNI"],["GA","green ash","FRPE"],["EC","eastern cottonwood","PODE3"],["SV","silver maple","ACSA2"],["RM","red maple","ACRU"],["BC","black cherry","PRSE2"],["AE","American elm","ULAM"],["RL","slippery elm","ULRU"],["RE","rock elm","ULTH"],["YB","yellow birch","BEAL2"],["BW","American basswood","TIAM"],["SM","sugar maple","ACSA3"],["BM","black maple","ACNI5"],["AB","American beech","FAGR"],["WA","white ash","FRAM2"],["WO","white oak","QUAL"],["SW","swamp white oak","QUBI"],["BR","bur oak","QUMA2"],["CK","chinkapin oak","QUMU"],["RO","northern red oak","QURU"],["BO","black oak","QUVE"],["NP","northern pin oak","QUEL"],["BH","bitternut hickory","CACO15"],["PH","pignut hickory","CAGL8"],["SH","shagbark hickory","CAOV2"],["BT","bigtooth aspen","POGR4"],["QA","quaking aspen","POTR5"],["BP","balsam poplar","POBA2"],["PB","paper birch","BEPA"],["BN","butternut","JUCI"],["WN","black walnut","JUNI"],["HH","hophornbeam","OSVI"],["BK","black locust","ROPS"],["OH","other hardwood",""],["BE","boxelder","ACNE2"],["ST","striped maple","ACPE"],["MM","mountain maple","ACSP2"],["AH","American hornbeam","CACA18"],["AC","American chestnut","CADE12"],["HK","common hackberry","CEOC"],["DW","flowering dogwood","COFL2"],["HT","hawthorn","CRATA"],["AP","apple","MALUS"],["BG","blackgum","NYSY"],["SY","American sycamore","PLOC"],["PR","pin cherry","PRPE2"],["CC","chokecherry","PRVI"],["PL","plum","PRUNU"],["WI","willow","SALIX"],["BL","black willow","SANI"],["DM","Missouri River willow","SAER"],["SS","sassafras","SAAL5"],["MA","American mountain ash","SOAM3"]],
-NE:[["BF","balsam fir","ABBA"],["TA","tamarack","LALA"],["WS","white spruce","PIGL"],["RS","red spruce","PIRU"],["NS","Norway spruce","PIAB"],["BS","black spruce","PIMA"],["PI","spruce","PICEA"],["RN","red pine","PIRE"],["WP","eastern white pine","PIST"],["LP","loblolly pine","PITA"],["VP","Virginia pine","PIVI2"],["WC","arborvitae","THOC2"],["AW","Atlantic white cedar","CHTH2"],["RC","eastern redcedar","JUVI"],["JU","juniper","JUNIP"],["EH","eastern hemlock","TSCA"],["HM","hemlock","TSUGA"],["OP","pine","PINUS"],["JP","jack pine","PIBA2"],["SP","shortleaf pine","PIEC2"],["TM","Table Mountain pine","PIPU5"],["PP","pitch pine","PIRI"],["PD","pond pine","PISE"],["SC","Scots pine","PISY"],["OS","other softwood",""],["RM","red maple","ACRU"],["SM","sugar maple","ACSA3"],["BM","black maple","ACNI5"],["SV","silver maple","ACSA2"],["YB","yellow birch","BEAL2"],["SB","sweet birch","BELE"],["RB","river birch","BENI"],["PB","paper birch","BEPA"],["GB","gray birch","BEPO"],["HI","hickory","CARYA"],["PH","pignut hickory","CAGL8"],["SL","shellbark hickory","CALA21"],["SH","shagbark hickory","CAOV2"],["MH","mockernut hickory","CAAL27"],["AB","American beech","FAGR"],["AS","ash","FRAXI"],["WA","white ash","FRAM2"],["BA","black ash","FRNI"],["GA","green ash","FRPE"],["PA","pumpkin ash","FRPR"],["YP","tuliptree","LITU"],["SU","sweetgum","LIST2"],["CT","cucumber tree","MAAC"],["QA","quaking aspen","POTR5"],["BP","balsam poplar","POBA2"],["EC","eastern cottonwood","PODE3"],["BT","bigtooth aspen","POGR4"],["PY","swamp cottonwood","POHE4"],["BC","black cherry","PRSE2"],["WO","white oak","QUAL"],["BR","bur oak","QUMA2"],["CK","chinkapin oak","QUMU"],["PO","post oak","QUST"],["OK","oak","QUERC"],["SO","scarlet oak","QUCO2"],["QI","shingle oak","QUIM"],["WK","water oak","QUNI"],["PN","pin oak","QUPA2"],["CO","chestnut oak","QUPR2"],["SW","swamp white oak","QUBI"],["SN","swamp chestnut oak","QUMI"],["RO","northern red oak","QURU"],["SK","southern red oak","QUFA"],["BO","black oak","QUVE"],["CB","cherrybark oak","QUPA5"],["BU","buckeye","AESCU"],["YY","yellow buckeye","AEFL"],["WR","water birch","BEOC2"],["HK","common hackberry","CEOC"],["PS","common persimmon","DIVI5"],["HY","American holly","ILOP"],["BN","butternut","JUCI"],["WN","black walnut","JUNI"],["OO","Osage-orange","MAPO"],["MG","magnolia","MAGNO"],["MV","sweetbay","MAVI2"],["AP","apple","MALUS"],["WT","water tupelo","NYAQ2"],["BG","blackgum","NYSY"],["SD","sourwood","OXAR"],["PW","princesstree","PATO2"],["SY","American sycamore","PLOC"],["WL","willow oak","QUPH"],["BK","black locust","ROPS"],["BL","black willow","SANI"],["SS","sassafras","SAAL5"],["BW","American basswood","TIAM"],["WB","white basswood","TIAMH"],["EL","elm","ULMUS"],["AE","American elm","ULAM"],["RL","slippery elm","ULRU"],["OH","other hardwood",""],["BE","boxelder","ACNE2"],["ST","striped maple","ACPE"],["AI","tree of heaven","AIAL"],["SE","serviceberry","AMELA"],["AH","American hornbeam","CACA18"],["DW","flowering dogwood","COFL2"],["HT","hawthorn","CRATA"],["HH","hophornbeam","OSVI"],["PL","plum","PRUNU"],["PR","pin cherry","PRPE2"]],
-PN:[["SF","Pacific silver fir","ABAM"],["WF","white fir","ABCO"],["GF","grand fir","ABGR"],["AF","subalpine fir","ABLA"],["RF","California red fir","ABMA"],["SS","Sitka spruce","PISI"],["NF","noble fir","ABPR"],["YC","Alaska cedar","CANO9"],["IC","incense cedar","CADE27"],["ES","Engelmann spruce","PIEN"],["LP","lodgepole pine","PICO"],["JP","Jeffrey pine","PIJE"],["SP","sugar pine","PILA"],["WP","western white pine","PIMO3"],["PP","ponderosa pine","PIPO"],["DF","Douglas-fir","PSME"],["RW","redwood","SESE3"],["RC","western redcedar","THPL"],["WH","western hemlock","TSHE"],["MH","mountain hemlock","TSME"],["BM","bigleaf maple","ACMA3"],["RA","red alder","ALRU2"],["WA","white alder","ALRH2"],["PB","paper birch","BEPA"],["GC","giant chinquapin","CHCHC4"],["AS","quaking aspen","POTR5"],["CW","black cottonwood","POBAT"],["WO","Oregon white oak","QUGA4"],["WJ","western juniper","JUOC"],["LL","subalpine larch","LALY"],["WB","whitebark pine","PIAL"],["KP","knobcone pine","PIAT"],["PY","Pacific yew","TABR2"],["DG","Pacific dogwood","CONU4"],["HT","hawthorn","CRATA"],["CH","bitter cherry","PREM"],["WI","willow","SALIX"],["OT","other",""]],
-SN:[["FR","fir","ABIES"],["JU","juniper","JUNIP"],["PI","spruce","PICEA"],["PU","sand pine","PICL"],["SP","shortleaf pine","PIEC2"],["SA","slash pine","PIEL"],["SR","spruce pine","PIGL2"],["LL","longleaf pine","PIPA2"],["TM","Table Mountain pine","PIPU5"],["PP","pitch pine","PIRI"],["PD","pond pine","PISE"],["WP","eastern white pine","PIST"],["LP","loblolly pine","PITA"],["VP","Virginia pine","PIVI2"],["BY","bald cypress","TADI2"],["PC","pond cypress","TAAS"],["HM","hemlock","TSUGA"],["FM","southern sugar maple","ACBA3"],["BE","boxelder","ACNE2"],["RM","red maple","ACRU"],["SV","silver maple","ACSA2"],["SM","sugar maple","ACSA3"],["BU","buckeye","AESCU"],["BB","birch","BETUL"],["SB","sweet birch","BELE"],["AH","American hornbeam","CACA18"],["HI","hickory","CARYA"],["CA","catalpa","CATAL"],["HB","hackberry","CELTI"],["RD","eastern redbud","CECA4"],["DW","flowering dogwood","COFL2"],["PS","common persimmon","DIVI5"],["AB","American beech","FAGR"],["AS","ash","FRAXI"],["WA","white ash","FRAM2"],["BA","black ash","FRNI"],["GA","green ash","FRPE"],["HL","honeylocust","GLTR"],["LB","loblolly bay","GOLA"],["HA","silverbell","HALES"],["HY","American holly","ILOP"],["BN","butternut","JUCI"],["WN","black walnut","JUNI"],["SU","sweetgum","LIST2"],["YP","tuliptree","LITU"],["MG","magnolia","MAGNO"],["CT","cucumber tree","MAAC"],["MS","southern magnolia","MAGR4"],["MV","sweetbay","MAVI2"],["ML","bigleaf magnolia","MAMA2"],["AP","apple","MALUS"],["MB","mulberry","MORUS"],["WT","water tupelo","NYAQ2"],["BG","blackgum","NYSY"],["TS","swamp tupelo","NYBI"],["HH","hophornbeam","OSVI"],["SD","sourwood","OXAR"],["RA","redbay","PEBO"],["SY","American sycamore","PLOC"],["CW","cottonwood","POPUL"],["BT","bigtooth aspen","POGR4"],["BC","black cherry","PRSE2"],["WO","white oak","QUAL"],["SO","scarlet oak","QUCO2"],["SK","southern red oak","QUFA"],["CB","cherrybark oak","QUPA5"],["TO","turkey oak","QULA2"],["LK","laurel oak","QULA3"],["OV","overcup oak","QULY"],["BJ","blackjack oak","QUMA3"],["SN","swamp chestnut oak","QUMI"],["CK","chinkapin oak","QUMU"],["WK","water oak","QUNI"],["CO","chestnut oak","QUPR2"],["RO","northern red oak","QURU"],["QS","Shumard's oak","QUSH"],["PO","post oak","QUST"],["BO","black oak","QUVE"],["LO","live oak","QUVI"],["BK","black locust","ROPS"],["WI","willow","SALIX"],["SS","sassafras","SAAL5"],["BD","basswood","TILIA"],["EL","elm","ULMUS"],["WE","winged elm","ULAL"],["AE","American elm","ULAM"],["RL","slippery elm","ULRU"],["OS","other softwood",""],["OH","other hardwood",""],["OT","other",""]],
-SO:[["WP","western white pine","PIMO3"],["SP","sugar pine","PILA"],["DF","Douglas-fir","PSME"],["WF","white fir","ABCO"],["MH","mountain hemlock","TSME"],["IC","incense cedar","CADE27"],["LP","lodgepole pine","PICO"],["ES","Engelmann spruce","PIEN"],["SH","Shasta red fir","ABSH"],["PP","ponderosa pine","PIPO"],["WJ","western juniper","JUOC"],["GF","grand fir","ABGR"],["AF","subalpine fir","ABLA"],["SF","Pacific silver fir","ABAM"],["NF","noble fir","ABPR"],["WB","whitebark pine","PIAL"],["WL","western larch","LAOC"],["RC","western redcedar","THPL"],["WH","western hemlock","TSHE"],["PY","Pacific yew","TABR2"],["WA","white alder","ALRH2"],["RA","red alder","ALRU2"],["BM","bigleaf maple","ACMA3"],["AS","quaking aspen","POTR5"],["CW","black cottonwood","POBAT"],["CH","bitter cherry","PREM"],["WO","Oregon white oak","QUGA4"],["WI","willow","SALIX"],["GC","giant chinquapin","CHCHC4"],["MC","curl-leaf mountain mahogany","CELE3"],["MB","birchleaf mountain mahogany","CEMOG"],["OS","other softwood",""],["OH","other hardwood",""]],
-TT:[["WB","whitebark pine","PIAL"],["LM","limber pine","PIFL2"],["DF","Douglas-fir","PSME"],["PM","singleleaf pinyon","PIMO"],["BS","blue spruce","PIPU"],["AS","quaking aspen","POTR5"],["LP","lodgepole pine","PICO"],["ES","Engelmann spruce","PIEN"],["AF","subalpine fir","ABLA"],["PP","ponderosa pine","PIPO"],["UJ","Utah juniper","JUOS"],["RM","Rocky Mountain juniper","JUSC2"],["BI","bigtooth maple","ACGR3"],["MM","Rocky Mountain maple","ACGL"],["NC","narrowleaf cottonwood","POAN3"],["MC","curl-leaf mountain mahogany","CELE3"],["OS","other softwood",""],["OH","other hardwood",""]],
-UT:[["WB","whitebark pine","PIAL"],["LM","limber pine","PIFL2"],["DF","Douglas-fir","PSME"],["WF","white fir","ABCO"],["BS","blue spruce","PIPU"],["AS","quaking aspen","POTR5"],["LP","lodgepole pine","PICO"],["ES","Engelmann spruce","PIEN"],["AF","subalpine fir","ABLA"],["PP","ponderosa pine","PIPO"],["PI","common pinyon","PIED"],["WJ","western juniper","JUOC"],["GO","Gambel oak","QUGA"],["PM","singleleaf pinyon","PIMO"],["RM","Rocky Mountain juniper","JUSC2"],["UJ","Utah juniper","JUOS"],["GB","Great Basin bristlecone pine","PILO"],["NC","narrowleaf cottonwood","POAN3"],["FC","Fremont cottonwood","POFR2"],["MC","curl-leaf mountain mahogany","CELE3"],["BI","bigtooth maple","ACGR3"],["BE","boxelder","ACNE2"],["OS","other softwood",""],["OH","other hardwood",""]],
-WC:[["SF","Pacific silver fir","ABAM"],["WF","white fir","ABCO"],["GF","grand fir","ABGR"],["AF","subalpine fir","ABLA"],["RF","California red fir","ABMA"],["NF","noble fir","ABPR"],["YC","Alaska cedar","CANO9"],["IC","incense cedar","CADE27"],["ES","Engelmann spruce","PIEN"],["LP","lodgepole pine","PICO"],["JP","Jeffrey pine","PIJE"],["SP","sugar pine","PILA"],["WP","western white pine","PIMO3"],["PP","ponderosa pine","PIPO"],["DF","Douglas-fir","PSME"],["RW","redwood","SESE3"],["RC","western redcedar","THPL"],["WH","western hemlock","TSHE"],["MH","mountain hemlock","TSME"],["BM","bigleaf maple","ACMA3"],["RA","red alder","ALRU2"],["WA","white alder","ALRH2"],["PB","paper birch","BEPA"],["GC","giant chinquapin","CHCHC4"],["AS","quaking aspen","POTR5"],["CW","black cottonwood","POBAT"],["WO","Oregon white oak","QUGA4"],["WJ","western juniper","JUOC"],["LL","subalpine larch","LALY"],["WB","whitebark pine","PIAL"],["KP","knobcone pine","PIAT"],["PY","Pacific yew","TABR2"],["DG","Pacific dogwood","CONU4"],["HT","hawthorn","CRATA"],["CH","bitter cherry","PREM"],["WI","willow","SALIX"],["OT","other",""]],
-WS:[["SP","sugar pine","PILA"],["DF","Douglas-fir","PSME"],["WF","white fir","ABCO"],["GS","giant sequoia","SEGI2"],["IC","incense cedar","CADE27"],["JP","Jeffrey pine","PIJE"],["RF","California red fir","ABMA"],["PP","ponderosa pine","PIPO"],["LP","lodgepole pine","PICO"],["WB","whitebark pine","PIAL"],["WP","western white pine","PIMO3"],["PM","singleleaf pinyon","PIMO"],["SF","Pacific silver fir","ABAM"],["KP","knobcone pine","PIAT"],["FP","foxtail pine","PIBA"],["CP","Coulter pine","PICO3"],["LM","limber pine","PIFL2"],["MP","Monterey pine","PIRA2"],["GP","California foothill pine","PISA2"],["WE","Washoe pine","PIWA"],["GB","Great Basin bristlecone pine","PILO"],["BD","bigcone Douglas-fir","PSMA"],["RW","redwood","SESE3"],["MH","mountain hemlock","TSME"],["WJ","western juniper","JUOC"],["UJ","Utah juniper","JUOS"],["CJ","California juniper","JUCA7"],["LO","California live oak","QUAG"],["CY","canyon live oak","QUCH2"],["BL","blue oak","QUDO"],["BO","California black oak","QUKE"],["VO","valley oak","QULO"],["IO","interior live oak","QUWI2"],["TO","tanoak","LIDE3"],["GC","giant chinquapin","CHCHC4"],["AS","quaking aspen","POTR5"],["CL","California laurel","UMCA"],["MA","Pacific madrone","ARME"],["DG","Pacific dogwood","CONU4"],["BM","bigleaf maple","ACMA3"],["MC","curl-leaf mountain mahogany","CELE3"],["OS","other softwood",""],["OH","other hardwood",""]]
+  AK:[["SF","Pacific silver fir","ABAM","Abies amabilis"],["AF","subalpine fir","ABLA","Abies lasiocarpa"],["YC","Alaska cedar","CANO9","Callitropsis nootkatensis"],["TA","tamarack","LALA","Larix laricina"],["WS","white spruce","PIGL","Picea glauca"],["LS","hybrid spruce","PILU","Picea lutzii"],["BE","black spruce","PIMA","Picea mariana"],["SS","Sitka spruce","PISI","Picea sitchensis"],["LP","lodgepole pine","PICO","Pinus contorta"],["RC","western redcedar","THPL","Thuja plicata"],["WH","western hemlock","TSHE","Tsuga heterophylla"],["MH","mountain hemlock","TSME","Tsuga mertensiana"],["OS","other softwood","",""],["AD","alder","ALNUS","Alnus"],["RA","red alder","ALRU2","Alnus rubra"],["PB","paper birch","BEPA","Betula papyrifera"],["AB","resin birch","BENE4","Betula neoalaskana"],["BA","balsam poplar","POBA2","Populus balsamifera"],["AS","quaking aspen","POTR5","Populus tremuloides"],["CW","black cottonwood","POBAT","Populus balsamifera ssp. trichocarpa"],["WI","willow","SALIX","Salix"],["SU","Scouler's willow","SASC","Salix scouleriana"],["OH","other hardwood","",""]],
+  BM:[["WP","western white pine","PIMO3","Pinus monticola"],["WL","western larch","LAOC","Larix occidentalis"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["GF","grand fir","ABGR","Abies grandis"],["MH","mountain hemlock","TSME","Tsuga mertensiana"],["WJ","western juniper","JUOC","Juniperus occidentalis"],["LP","lodgepole pine","PICO","Pinus contorta"],["ES","Engelmann spruce","PIEN","Picea engelmannii"],["AF","subalpine fir","ABLA","Abies lasiocarpa"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["WB","whitebark pine","PIAL","Pinus albicaulis"],["LM","limber pine","PIFL2","Pinus flexilis"],["PY","Pacific yew","TABR2","Taxus brevifolia"],["YC","Alaska cedar","CANO9","Callitropsis nootkatensis"],["AS","quaking aspen","POTR5","Populus tremuloides"],["CW","black cottonwood","POBAT","Populus balsamifera ssp. trichocarpa"],["OS","other softwood","",""],["OH","other hardwood","",""]],
+  CA:[["PC","Port Orford cedar","CHLA","Chamaecyparis lawsoniana"],["IC","incense cedar","CADE27","Calocedrus decurrens"],["RC","western redcedar","THPL","Thuja plicata"],["WF","white fir","ABCO","Abies concolor"],["RF","California red fir","ABMA","Abies magnifica"],["SH","Shasta red fir","ABSH","Abies shastensis"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["WH","western hemlock","TSHE","Tsuga heterophylla"],["MH","mountain hemlock","TSME","Tsuga mertensiana"],["WB","whitebark pine","PIAL","Pinus albicaulis"],["KP","knobcone pine","PIAT","Pinus attenuata"],["LP","lodgepole pine","PICO","Pinus contorta"],["CP","Coulter pine","PICO3","Pinus coulteri"],["LM","limber pine","PIFL2","Pinus flexilis"],["JP","Jeffrey pine","PIJE","Pinus jeffreyi"],["SP","sugar pine","PILA","Pinus lambertiana"],["WP","western white pine","PIMO3","Pinus monticola"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["MP","Monterey pine","PIRA2","Pinus radiata"],["GP","California foothill pine","PISA2","Pinus sabiniana"],["WJ","western juniper","JUOC","Juniperus occidentalis"],["BR","Brewer spruce","PIBR","Picea breweriana"],["GS","giant sequoia","SEGI2","Sequoiadendron giganteum"],["PY","Pacific yew","TABR2","Taxus brevifolia"],["OS","other softwood","",""],["LO","California live oak","QUAG","Quercus agrifolia"],["CY","canyon live oak","QUCH2","Quercus chrysolepis"],["BL","blue oak","QUDO","Quercus douglasii"],["EO","Engelmann oak","QUEN","Quercus engelmannii"],["WO","Oregon white oak","QUGA4","Quercus garryana"],["BO","California black oak","QUKE","Quercus kelloggii"],["VO","valley oak","QULO","Quercus lobata"],["IO","interior live oak","QUWI2","Quercus wislizenii"],["BM","bigleaf maple","ACMA3","Acer macrophyllum"],["BU","California buckeye","AECA","Aesculus californica"],["RA","red alder","ALRU2","Alnus rubra"],["MA","Pacific madrone","ARME","Arbutus menziesii"],["GC","giant chinquapin","CHCHC4","Chrysolepis chrysophylla var. chrysophylla"],["DG","Pacific dogwood","CONU4","Cornus nuttallii"],["FL","Oregon ash","FRLA","Fraxinus latifolia"],["WN","walnut","JUGLA","Juglans"],["TO","tanoak","LIDE3","Lithocarpus densiflorus"],["SY","California sycamore","PLRA","Platanus racemosa"],["AS","quaking aspen","POTR5","Populus tremuloides"],["CW","black cottonwood","POBAT","Populus balsamifera ssp. trichocarpa"],["WI","willow","SALIX","Salix"],["CN","California nutmeg","TOCA","Torreya californica"],["CL","California laurel","UMCA","Umbellularia californica"],["OH","other hardwood","",""],["RW","redwood","SESE3","Sequoia sempervirens"]],
+  CI:[["WP","western white pine","PIMO3","Pinus monticola"],["WL","western larch","LAOC","Larix occidentalis"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["GF","grand fir","ABGR","Abies grandis"],["WH","western hemlock","TSHE","Tsuga heterophylla"],["RC","western redcedar","THPL","Thuja plicata"],["LP","lodgepole pine","PICO","Pinus contorta"],["ES","Engelmann spruce","PIEN","Picea engelmannii"],["AF","subalpine fir","ABLA","Abies lasiocarpa"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["WB","whitebark pine","PIAL","Pinus albicaulis"],["PY","Pacific yew","TABR2","Taxus brevifolia"],["AS","quaking aspen","POTR5","Populus tremuloides"],["WJ","western juniper","JUOC","Juniperus occidentalis"],["MC","curl-leaf mountain mahogany","CELE3","Cercocarpus ledifolius"],["LM","limber pine","PIFL2","Pinus flexilis"],["CW","black cottonwood","POBAT","Populus balsamifera ssp. trichocarpa"],["OS","other softwood","",""],["OH","other hardwood","",""]],
+  CR:[["AF","subalpine fir","ABLA","Abies lasiocarpa"],["CB","corkbark fir","ABLAA","Abies lasiocarpa var. arizonica"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["GF","grand fir","ABGR","Abies grandis"],["WF","white fir","ABCO","Abies concolor"],["MH","mountain hemlock","TSME","Tsuga mertensiana"],["RC","western redcedar","THPL","Thuja plicata"],["WL","western larch","LAOC","Larix occidentalis"],["BC","bristlecone pine","PIAR","Pinus aristata"],["LM","limber pine","PIFL2","Pinus flexilis"],["LP","lodgepole pine","PICO","Pinus contorta"],["PI","twoneedle pinyon","PIED","Pinus edulis"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["WB","whitebark pine","PIAL","Pinus albicaulis"],["SW","southwestern white pine","PIST3","Pinus strobiformis"],["UJ","Utah juniper","JUOS","Juniperus osteosperma"],["BS","blue spruce","PIPU","Picea pungens"],["ES","Engelmann spruce","PIEN","Picea engelmannii"],["WS","white spruce","PIGL","Picea glauca"],["AS","quaking aspen","POTR5","Populus tremuloides"],["NC","narrowleaf cottonwood","POAN3","Populus angustifolia"],["PW","plains cottonwood","PODEM","Populus deltoides ssp. monilifera"],["GO","Gambel oak","QUGA","Quercus gambelii"],["AW","Arizona white oak","QUAR","Quercus arizonica"],["EM","Emory oak","QUEM","Quercus emoryi"],["BK","bur oak","QUMA2","Quercus macrocarpa"],["SO","silverleaf oak","QUHY","Quercus hypoleucoides"],["PB","paper birch","BEPA","Betula papyrifera"],["AJ","alligator juniper","JUDE2","Juniperus deppeana"],["RM","Rocky Mountain juniper","JUSC2","Juniperus scopulorum"],["OJ","oneseed juniper","JUMO","Juniperus monosperma"],["ER","eastern redcedar","JUVI","Juniperus virginiana"],["PM","singleleaf pinyon","PIMO","Pinus monophylla"],["PD","border pinyon","PIDI3","Pinus discolor"],["AZ","Arizona twoneedle pinyon","PIMOF","Pinus monophylla var. fallax"],["CI","Chihuahuan pine","PILE","Pinus leiophylla"],["OS","other softwood","",""],["OH","other hardwood","",""]],
+  CS:[["RC","eastern redcedar","JUVI","Juniperus virginiana"],["JU","juniper","JUNIP","Juniperus"],["SP","shortleaf pine","PIEC2","Pinus echinata"],["VP","Virginia pine","PIVI2","Pinus virginiana"],["LP","loblolly pine","PITA","Pinus taeda"],["OS","other softwood","",""],["WP","eastern white pine","PIST","Pinus strobus"],["WN","black walnut","JUNI","Juglans nigra"],["BN","butternut","JUCI","Juglans cinerea"],["TL","tupelo","NYSSA","Nyssa"],["TS","swamp tupelo","NYBI","Nyssa biflora"],["WT","water tupelo","NYAQ2","Nyssa aquatica"],["BG","blackgum","NYSY","Nyssa sylvatica"],["SH","shagbark hickory","CAOV2","Carya ovata"],["SL","shellbark hickory","CALA21","Carya laciniosa"],["MH","mockernut hickory","CAAL27","Carya tomentosa"],["PH","pignut hickory","CAGL8","Carya glabra"],["HI","hickory","CARYA","Carya"],["WH","water hickory","CAAQ2","Carya aquatica"],["BH","bitternut hickory","CACO15","Carya cordiformis"],["PE","pecan","CAIL2","Carya illinoinensis"],["BI","black hickory","CATE9","Carya texana"],["AB","American beech","FAGR","Fagus grandifolia"],["BA","black ash","FRNI","Fraxinus nigra"],["PA","pumpkin ash","FRPR","Fraxinus profunda"],["UA","blue ash","FRQU","Fraxinus quadrangulata"],["EC","eastern cottonwood","PODE3","Populus deltoides"],["RM","red maple","ACRU","Acer rubrum"],["BE","boxelder","ACNE2","Acer negundo"],["SV","silver maple","ACSA2","Acer saccharinum"],["BC","black cherry","PRSE2","Prunus serotina"],["AE","American elm","ULAM","Ulmus americana"],["SG","sugarberry","CELA","Celtis laevigata"],["HK","common hackberry","CEOC","Celtis occidentalis"],["WE","winged elm","ULAL","Ulmus alata"],["EL","elm","ULMUS","Ulmus"],["SI","Siberian elm","ULPU","Ulmus pumila"],["RL","slippery elm","ULRU","Ulmus rubra"],["RE","rock elm","ULTH","Ulmus thomasii"],["YP","tuliptree","LITU","Liriodendron tulipifera"],["BW","American basswood","TIAM","Tilia americana"],["SM","sugar maple","ACSA3","Acer saccharum"],["AS","ash","FRAXI","Fraxinus"],["WA","white ash","FRAM2","Fraxinus americana"],["GA","green ash","FRPE","Fraxinus pennsylvanica"],["WO","white oak","QUAL","Quercus alba"],["RO","northern red oak","QURU","Quercus rubra"],["SK","southern red oak","QUFA","Quercus falcata"],["BO","black oak","QUVE","Quercus velutina"],["SO","scarlet oak","QUCO2","Quercus coccinea"],["BJ","blackjack oak","QUMA3","Quercus marilandica"],["CK","chinkapin oak","QUMU","Quercus muehlenbergii"],["SW","swamp white oak","QUBI","Quercus bicolor"],["BR","bur oak","QUMA2","Quercus macrocarpa"],["SN","swamp chestnut oak","QUMI","Quercus michauxii"],["PO","post oak","QUST","Quercus stellata"],["DO","bottomland post oak","QUSI2","Quercus similis"],["CO","chestnut oak","QUPR2","Quercus prinus"],["PN","pin oak","QUPA2","Quercus palustris"],["CB","cherrybark oak","QUPA5","Quercus pagoda"],["QI","shingle oak","QUIM","Quercus imbricaria"],["OV","overcup oak","QULY","Quercus lyrata"],["WK","water oak","QUNI","Quercus nigra"],["NK","Nuttall oak","QUTE","Quercus texana"],["WL","willow oak","QUPH","Quercus phellos"],["QS","Shumard's oak","QUSH","Quercus shumardii"],["SS","sassafras","SAAL5","Sassafras albidum"],["OB","Ohio buckeye","AEGL","Aesculus glabra"],["CA","catalpa","CATAL","Catalpa"],["PS","common persimmon","DIVI5","Diospyros virginiana"],["HL","honeylocust","GLTR","Gleditsia triacanthos"],["BP","balsam poplar","POBA2","Populus balsamifera"],["BT","bigtooth aspen","POGR4","Populus grandidentata"],["QA","quaking aspen","POTR5","Populus tremuloides"],["BK","black locust","ROPS","Robinia pseudoacacia"],["SY","American sycamore","PLOC","Platanus occidentalis"],["BY","bald cypress","TADI2","Taxodium distichum"],["RB","river birch","BENI","Betula nigra"],["SU","sweetgum","LIST2","Liquidambar styraciflua"],["WI","willow","SALIX","Salix"],["BL","black willow","SANI","Salix nigra"],["OH","other hardwood","",""],["AH","American hornbeam","CACA18","Carpinus caroliniana"],["RD","eastern redbud","CECA4","Cercis canadensis"],["DW","flowering dogwood","COFL2","Cornus florida"],["HT","hawthorn","CRATA","Crataegus"],["KC","Kentucky coffeetree","GYDI","Gymnocladus dioicus"],["OO","Osage-orange","MAPO","Maclura pomifera"],["CT","cucumber tree","MAAC","Magnolia acuminata"],["MV","sweetbay","MAVI2","Magnolia virginiana"],["MB","mulberry","MORUS","Morus"],["HH","hophornbeam","OSVI","Ostrya virginiana"],["SD","sourwood","OXAR","Oxydendrum arboreum"]],
+  EC:[["WP","western white pine","PIMO3","Pinus monticola"],["WL","western larch","LAOC","Larix occidentalis"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["SF","Pacific silver fir","ABAM","Abies amabilis"],["RC","western redcedar","THPL","Thuja plicata"],["GF","grand fir","ABGR","Abies grandis"],["LP","lodgepole pine","PICO","Pinus contorta"],["ES","Engelmann spruce","PIEN","Picea engelmannii"],["AF","subalpine fir","ABLA","Abies lasiocarpa"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["WH","western hemlock","TSHE","Tsuga heterophylla"],["MH","mountain hemlock","TSME","Tsuga mertensiana"],["PY","Pacific yew","TABR2","Taxus brevifolia"],["WB","whitebark pine","PIAL","Pinus albicaulis"],["NF","noble fir","ABPR","Abies procera"],["WF","white fir","ABCO","Abies concolor"],["LL","subalpine larch","LALY","Larix lyallii"],["YC","Alaska cedar","CANO9","Callitropsis nootkatensis"],["WJ","western juniper","JUOC","Juniperus occidentalis"],["BM","bigleaf maple","ACMA3","Acer macrophyllum"],["VN","vine maple","ACCI","Acer circinatum"],["RA","red alder","ALRU2","Alnus rubra"],["PB","paper birch","BEPA","Betula papyrifera"],["GC","giant chinquapin","CHCHC4","Chrysolepis chrysophylla var. chrysophylla"],["DG","Pacific dogwood","CONU4","Cornus nuttallii"],["AS","quaking aspen","POTR5","Populus tremuloides"],["CW","black cottonwood","POBAT","Populus balsamifera ssp. trichocarpa"],["WO","Oregon white oak","QUGA4","Quercus garryana"],["PL","plum","PRUNU","Prunus"],["WI","willow","SALIX","Salix"],["OS","other softwood","",""],["OH","other hardwood","",""]],
+  EM:[["WB","whitebark pine","PIAL","Pinus albicaulis"],["WL","western larch","LAOC","Larix occidentalis"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["LM","limber pine","PIFL2","Pinus flexilis"],["LL","subalpine larch","LALY","Larix lyallii"],["RM","Rocky Mountain juniper","JUSC2","Juniperus scopulorum"],["LP","lodgepole pine","PICO","Pinus contorta"],["ES","Engelmann spruce","PIEN","Picea engelmannii"],["AF","subalpine fir","ABLA","Abies lasiocarpa"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["GA","green ash","FRPE","Fraxinus pennsylvanica"],["AS","quaking aspen","POTR5","Populus tremuloides"],["CW","black cottonwood","POBAT","Populus balsamifera ssp. trichocarpa"],["BA","balsam poplar","POBA2","Populus balsamifera"],["PW","plains cottonwood","PODEM","Populus deltoides ssp. monilifera"],["NC","narrowleaf cottonwood","POAN3","Populus angustifolia"],["PB","paper birch","BEPA","Betula papyrifera"],["OS","other softwood","",""],["OH","other hardwood","",""]],
+  IE:[["WP","western white pine","PIMO3","Pinus monticola"],["WL","western larch","LAOC","Larix occidentalis"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["GF","grand fir","ABGR","Abies grandis"],["WH","western hemlock","TSHE","Tsuga heterophylla"],["RC","western redcedar","THPL","Thuja plicata"],["LP","lodgepole pine","PICO","Pinus contorta"],["ES","Engelmann spruce","PIEN","Picea engelmannii"],["AF","subalpine fir","ABLA","Abies lasiocarpa"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["MH","mountain hemlock","TSME","Tsuga mertensiana"],["WB","whitebark pine","PIAL","Pinus albicaulis"],["LM","limber pine","PIFL2","Pinus flexilis"],["LL","subalpine larch","LALY","Larix lyallii"],["PM","singleleaf pinyon","PIMO","Pinus monophylla"],["RM","Rocky Mountain juniper","JUSC2","Juniperus scopulorum"],["PY","Pacific yew","TABR2","Taxus brevifolia"],["AS","quaking aspen","POTR5","Populus tremuloides"],["CO","cottonwood","POPUL","Populus"],["MM","Rocky Mountain maple","ACGL","Acer glabrum"],["PB","paper birch","BEPA","Betula papyrifera"],["OH","other hardwood","",""],["OS","other softwood","",""]],
+  KT:[["WP","western white pine","PIMO3","Pinus monticola"],["WL","western larch","LAOC","Larix occidentalis"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["GF","grand fir","ABGR","Abies grandis"],["WH","western hemlock","TSHE","Tsuga heterophylla"],["RC","western redcedar","THPL","Thuja plicata"],["LP","lodgepole pine","PICO","Pinus contorta"],["ES","Engelmann spruce","PIEN","Picea engelmannii"],["AF","subalpine fir","ABLA","Abies lasiocarpa"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["OT","other","",""]],
+  NC:[["OS","other softwood","",""],["SP","sugar pine","PILA","Pinus lambertiana"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["WF","white fir","ABCO","Abies concolor"],["MA","Pacific madrone","ARME","Arbutus menziesii"],["IC","incense cedar","CADE27","Calocedrus decurrens"],["BO","California black oak","QUKE","Quercus kelloggii"],["TO","tanoak","LIDE3","Lithocarpus densiflorus"],["RF","California red fir","ABMA","Abies magnifica"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["OH","other hardwood","",""],["RW","redwood","SESE3","Sequoia sempervirens"]],
+  LS:[["JP","jack pine","PIBA2","Pinus banksiana"],["SC","Scots pine","PISY","Pinus sylvestris"],["RN","red pine (natural)","PIRE","Pinus resinosa"],["RP","red pine (plantation)","PIRE","Pinus resinosa"],["WP","eastern white pine","PIST","Pinus strobus"],["WS","white spruce","PIGL","Picea glauca"],["NS","Norway spruce","PIAB","Picea abies"],["BF","balsam fir","ABBA","Abies balsamea"],["BS","black spruce","PIMA","Picea mariana"],["TA","tamarack","LALA","Larix laricina"],["WC","arborvitae","THOC2","Thuja occidentalis"],["EH","eastern hemlock","TSCA","Tsuga canadensis"],["OS","other softwood","",""],["RC","eastern redcedar","JUVI","Juniperus virginiana"],["BA","black ash","FRNI","Fraxinus nigra"],["GA","green ash","FRPE","Fraxinus pennsylvanica"],["EC","eastern cottonwood","PODE3","Populus deltoides"],["SV","silver maple","ACSA2","Acer saccharinum"],["RM","red maple","ACRU","Acer rubrum"],["BC","black cherry","PRSE2","Prunus serotina"],["AE","American elm","ULAM","Ulmus americana"],["RL","slippery elm","ULRU","Ulmus rubra"],["RE","rock elm","ULTH","Ulmus thomasii"],["YB","yellow birch","BEAL2","Betula alleghaniensis"],["BW","American basswood","TIAM","Tilia americana"],["SM","sugar maple","ACSA3","Acer saccharum"],["BM","black maple","ACNI5","Acer nigrum"],["AB","American beech","FAGR","Fagus grandifolia"],["WA","white ash","FRAM2","Fraxinus americana"],["WO","white oak","QUAL","Quercus alba"],["SW","swamp white oak","QUBI","Quercus bicolor"],["BR","bur oak","QUMA2","Quercus macrocarpa"],["CK","chinkapin oak","QUMU","Quercus muehlenbergii"],["RO","northern red oak","QURU","Quercus rubra"],["BO","black oak","QUVE","Quercus velutina"],["NP","northern pin oak","QUEL","Quercus ellipsoidalis"],["BH","bitternut hickory","CACO15","Carya cordiformis"],["PH","pignut hickory","CAGL8","Carya glabra"],["SH","shagbark hickory","CAOV2","Carya ovata"],["BT","bigtooth aspen","POGR4","Populus grandidentata"],["QA","quaking aspen","POTR5","Populus tremuloides"],["BP","balsam poplar","POBA2","Populus balsamifera"],["PB","paper birch","BEPA","Betula papyrifera"],["BN","butternut","JUCI","Juglans cinerea"],["WN","black walnut","JUNI","Juglans nigra"],["HH","hophornbeam","OSVI","Ostrya virginiana"],["BK","black locust","ROPS","Robinia pseudoacacia"],["OH","other hardwood","",""],["BE","boxelder","ACNE2","Acer negundo"],["ST","striped maple","ACPE","Acer pensylvanicum"],["MM","mountain maple","ACSP2","Acer spicatum"],["AH","American hornbeam","CACA18","Carpinus caroliniana"],["AC","American chestnut","CADE12","Castanea dentata"],["HK","common hackberry","CEOC","Celtis occidentalis"],["DW","flowering dogwood","COFL2","Cornus florida"],["HT","hawthorn","CRATA","Crataegus"],["AP","apple","MALUS","Malus"],["BG","blackgum","NYSY","Nyssa sylvatica"],["SY","American sycamore","PLOC","Platanus occidentalis"],["PR","pin cherry","PRPE2","Prunus pensylvanica"],["CC","chokecherry","PRVI","Prunus virginiana"],["PL","plum","PRUNU","Prunus"],["WI","willow","SALIX","Salix"],["BL","black willow","SANI","Salix nigra"],["DM","Missouri River willow","SAER","Salix eriocephala"],["SS","sassafras","SAAL5","Sassafras albidum"],["MA","American mountain ash","SOAM3","Sorbus americana"]],
+  NE:[["BF","balsam fir","ABBA","Abies balsamea"],["TA","tamarack","LALA","Larix laricina"],["WS","white spruce","PIGL","Picea glauca"],["RS","red spruce","PIRU","Picea rubens"],["NS","Norway spruce","PIAB","Picea abies"],["BS","black spruce","PIMA","Picea mariana"],["PI","spruce","PICEA","Picea"],["RN","red pine","PIRE","Pinus resinosa"],["WP","eastern white pine","PIST","Pinus strobus"],["LP","loblolly pine","PITA","Pinus taeda"],["VP","Virginia pine","PIVI2","Pinus virginiana"],["WC","arborvitae","THOC2","Thuja occidentalis"],["AW","Atlantic white cedar","CHTH2","Chamaecyparis thyoides"],["RC","eastern redcedar","JUVI","Juniperus virginiana"],["JU","juniper","JUNIP","Juniperus"],["EH","eastern hemlock","TSCA","Tsuga canadensis"],["HM","hemlock","TSUGA","Tsuga"],["OP","pine","PINUS","Pinus"],["JP","jack pine","PIBA2","Pinus banksiana"],["SP","shortleaf pine","PIEC2","Pinus echinata"],["TM","Table Mountain pine","PIPU5","Pinus pungens"],["PP","pitch pine","PIRI","Pinus rigida"],["PD","pond pine","PISE","Pinus serotina"],["SC","Scots pine","PISY","Pinus sylvestris"],["OS","other softwood","",""],["RM","red maple","ACRU","Acer rubrum"],["SM","sugar maple","ACSA3","Acer saccharum"],["BM","black maple","ACNI5","Acer nigrum"],["SV","silver maple","ACSA2","Acer saccharinum"],["YB","yellow birch","BEAL2","Betula alleghaniensis"],["SB","sweet birch","BELE","Betula lenta"],["RB","river birch","BENI","Betula nigra"],["PB","paper birch","BEPA","Betula papyrifera"],["GB","gray birch","BEPO","Betula populifolia"],["HI","hickory","CARYA","Carya"],["PH","pignut hickory","CAGL8","Carya glabra"],["SL","shellbark hickory","CALA21","Carya laciniosa"],["SH","shagbark hickory","CAOV2","Carya ovata"],["MH","mockernut hickory","CAAL27","Carya alba"],["AB","American beech","FAGR","Fagus grandifolia"],["AS","ash","FRAXI","Fraxinus"],["WA","white ash","FRAM2","Fraxinus americana"],["BA","black ash","FRNI","Fraxinus nigra"],["GA","green ash","FRPE","Fraxinus pennsylvanica"],["PA","pumpkin ash","FRPR","Fraxinus profunda"],["YP","tuliptree","LITU","Liriodendron tulipifera"],["SU","sweetgum","LIST2","Liquidambar styraciflua"],["CT","cucumber tree","MAAC","Magnolia acuminata"],["QA","quaking aspen","POTR5","Populus tremuloides"],["BP","balsam poplar","POBA2","Populus balsamifera"],["EC","eastern cottonwood","PODE3","Populus deltoides"],["BT","bigtooth aspen","POGR4","Populus grandidentata"],["PY","swamp cottonwood","POHE4","Populus heterophylla"],["BC","black cherry","PRSE2","Prunus serotina"],["WO","white oak","QUAL","Quercus alba"],["BR","bur oak","QUMA2","Quercus macrocarpa"],["CK","chinkapin oak","QUMU","Quercus muehlenbergii"],["PO","post oak","QUST","Quercus stellata"],["OK","oak","QUERC","Quercus"],["SO","scarlet oak","QUCO2","Quercus coccinea"],["QI","shingle oak","QUIM","Quercus imbricaria"],["WK","water oak","QUNI","Quercus nigra"],["PN","pin oak","QUPA2","Quercus palustris"],["CO","chestnut oak","QUPR2","Quercus prinus"],["SW","swamp white oak","QUBI","Quercus bicolor"],["SN","swamp chestnut oak","QUMI","Quercus michauxii"],["RO","northern red oak","QURU","Quercus rubra"],["SK","southern red oak","QUFA","Quercus falcata"],["BO","black oak","QUVE","Quercus velutina"],["CB","cherrybark oak","QUPA5","Quercus pagoda"],["BU","buckeye","AESCU","Aesculus"],["YY","yellow buckeye","AEFL","Aesculus flava"],["WR","water birch","BEOC2","Betula occidentalis"],["HK","common hackberry","CEOC","Celtis occidentalis"],["PS","common persimmon","DIVI5","Diospyros virginiana"],["HY","American holly","ILOP","Ilex opaca"],["BN","butternut","JUCI","Juglans cinerea"],["WN","black walnut","JUNI","Juglans nigra"],["OO","Osage-orange","MAPO","Maclura pomifera"],["MG","magnolia","MAGNO","Magnolia"],["MV","sweetbay","MAVI2","Magnolia virginiana"],["AP","apple","MALUS","Malus"],["WT","water tupelo","NYAQ2","Nyssa aquatica"],["BG","blackgum","NYSY","Nyssa sylvatica"],["SD","sourwood","OXAR","Oxydendrum arboreum"],["PW","princesstree","PATO2","Paulownia tomentosa"],["SY","American sycamore","PLOC","Platanus occidentalis"],["WL","willow oak","QUPH","Quercus phellos"],["BK","black locust","ROPS","Robinia pseudoacacia"],["BL","black willow","SANI","Salix nigra"],["SS","sassafras","SAAL5","Sassafras albidum"],["BW","American basswood","TIAM","Tilia americana"],["WB","white basswood","TIAMH","Tilia americana var. heterophylla"],["EL","elm","ULMUS","Ulmus"],["AE","American elm","ULAM","Ulmus americana"],["RL","slippery elm","ULRU","Ulmus rubra"],["OH","other hardwood","",""],["BE","boxelder","ACNE2","Acer negundo"],["ST","striped maple","ACPE","Acer pensylvanicum"],["AI","tree of heaven","AIAL","Ailanthus altissima"],["SE","serviceberry","AMELA","Amelanchier"],["AH","American hornbeam","CACA18","Carpinus caroliniana"],["DW","flowering dogwood","COFL2","Cornus florida"],["HT","hawthorn","CRATA","Crataegus"],["HH","hophornbeam","OSVI","Ostrya virginiana"],["PL","plum","PRUNU","Prunus"],["PR","pin cherry","PRPE2","Prunus pensylvanica"]],
+  PN:[["SF","Pacific silver fir","ABAM","Abies amabilis"],["WF","white fir","ABCO","Abies concolor"],["GF","grand fir","ABGR","Abies grandis"],["AF","subalpine fir","ABLA","Abies lasiocarpa"],["RF","California red fir","ABMA","Abies magnifica"],["SS","Sitka spruce","PISI","Picea sitchensis"],["NF","noble fir","ABPR","Abies procera"],["YC","Alaska cedar","CANO9","Callitropsis nootkatensis"],["IC","incense cedar","CADE27","Calocedrus decurrens"],["ES","Engelmann spruce","PIEN","Picea engelmannii"],["LP","lodgepole pine","PICO","Pinus contorta"],["JP","Jeffrey pine","PIJE","Pinus jeffreyi"],["SP","sugar pine","PILA","Pinus lambertiana"],["WP","western white pine","PIMO3","Pinus monticola"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["RW","redwood","SESE3","Sequoia sempervirens"],["RC","western redcedar","THPL","Thuja plicata"],["WH","western hemlock","TSHE","Tsuga heterophylla"],["MH","mountain hemlock","TSME","Tsuga mertensiana"],["BM","bigleaf maple","ACMA3","Acer macrophyllum"],["RA","red alder","ALRU2","Alnus rubra"],["WA","white alder","ALRH2","Alnus rhombifolia"],["PB","paper birch","BEPA","Betula papyrifera"],["GC","giant chinquapin","CHCHC4","Chrysolepis chrysophylla var. chrysophylla"],["AS","quaking aspen","POTR5","Populus tremuloides"],["CW","black cottonwood","POBAT","Populus balsamifera ssp. trichocarpa"],["WO","Oregon white oak","QUGA4","Quercus garryana"],["WJ","western juniper","JUOC","Juniperus occidentalis"],["LL","subalpine larch","LALY","Larix lyallii"],["WB","whitebark pine","PIAL","Pinus albicaulis"],["KP","knobcone pine","PIAT","Pinus attenuata"],["PY","Pacific yew","TABR2","Taxus brevifolia"],["DG","Pacific dogwood","CONU4","Cornus nuttallii"],["HT","hawthorn","CRATA","Crataegus"],["CH","bitter cherry","PREM","Prunus emarginata"],["WI","willow","SALIX","Salix"],["OT","other","",""]],
+  SN:[["FR","fir","ABIES","Abies"],["JU","juniper","JUNIP","Juniperus"],["PI","spruce","PICEA","Picea"],["PU","sand pine","PICL","Pinus clausa"],["SP","shortleaf pine","PIEC2","Pinus echinata"],["SA","slash pine","PIEL","Pinus elliottii"],["SR","spruce pine","PIGL2","Pinus glabra"],["LL","longleaf pine","PIPA2","Pinus palustris"],["TM","Table Mountain pine","PIPU5","Pinus pungens"],["PP","pitch pine","PIRI","Pinus rigida"],["PD","pond pine","PISE","Pinus serotina"],["WP","eastern white pine","PIST","Pinus strobus"],["LP","loblolly pine","PITA","Pinus taeda"],["VP","Virginia pine","PIVI2","Pinus virginiana"],["BY","bald cypress","TADI2","Taxodium distichum"],["PC","pond cypress","TAAS","Taxodium ascendens"],["HM","hemlock","TSUGA","Tsuga"],["FM","southern sugar maple","ACBA3","Acer barbatum"],["BE","boxelder","ACNE2","Acer negundo"],["RM","red maple","ACRU","Acer rubrum"],["SV","silver maple","ACSA2","Acer saccharinum"],["SM","sugar maple","ACSA3","Acer saccharum"],["BU","buckeye","AESCU","Aesculus"],["BB","birch","BETUL","Betula"],["SB","sweet birch","BELE","Betula lenta"],["AH","American hornbeam","CACA18","Carpinus caroliniana"],["HI","hickory","CARYA","Carya"],["CA","catalpa","CATAL","Catalpa"],["HB","hackberry","CELTI","Celtis"],["RD","eastern redbud","CECA4","Cercis canadensis"],["DW","flowering dogwood","COFL2","Cornus florida"],["PS","common persimmon","DIVI5","Diospyros virginiana"],["AB","American beech","FAGR","Fagus grandifolia"],["AS","ash","FRAXI","Fraxinus"],["WA","white ash","FRAM2","Fraxinus americana"],["BA","black ash","FRNI","Fraxinus nigra"],["GA","green ash","FRPE","Fraxinus pennsylvanica"],["HL","honeylocust","GLTR","Gleditsia triacanthos"],["LB","loblolly bay","GOLA","Gordonia lasianthus"],["HA","silverbell","HALES","Halesia"],["HY","American holly","ILOP","Ilex opaca"],["BN","butternut","JUCI","Juglans cinerea"],["WN","black walnut","JUNI","Juglans nigra"],["SU","sweetgum","LIST2","Liquidambar styraciflua"],["YP","tuliptree","LITU","Liriodendron tulipifera"],["MG","magnolia","MAGNO","Magnolia"],["CT","cucumber tree","MAAC","Magnolia acuminata"],["MS","southern magnolia","MAGR4","Magnolia grandiflora"],["MV","sweetbay","MAVI2","Magnolia virginiana"],["ML","bigleaf magnolia","MAMA2","Magnolia macrophylla"],["AP","apple","MALUS","Malus"],["MB","mulberry","MORUS","Morus"],["WT","water tupelo","NYAQ2","Nyssa aquatica"],["BG","blackgum","NYSY","Nyssa sylvatica"],["TS","swamp tupelo","NYBI","Nyssa biflora"],["HH","hophornbeam","OSVI","Ostrya virginiana"],["SD","sourwood","OXAR","Oxydendrum arboreum"],["RA","redbay","PEBO","Persea borbonia"],["SY","American sycamore","PLOC","Platanus occidentalis"],["CW","cottonwood","POPUL","Populus"],["BT","bigtooth aspen","POGR4","Populus grandidentata"],["BC","black cherry","PRSE2","Prunus serotina"],["WO","white oak","QUAL","Quercus alba"],["SO","scarlet oak","QUCO2","Quercus coccinea"],["SK","southern red oak","QUFA","Quercus falcata"],["CB","cherrybark oak","QUPA5","Quercus pagoda"],["TO","turkey oak","QULA2","Quercus laevis"],["LK","laurel oak","QULA3","Quercus laurifolia"],["OV","overcup oak","QULY","Quercus lyrata"],["BJ","blackjack oak","QUMA3","Quercus marilandica"],["SN","swamp chestnut oak","QUMI","Quercus michauxii"],["CK","chinkapin oak","QUMU","Quercus muehlenbergii"],["WK","water oak","QUNI","Quercus nigra"],["CO","chestnut oak","QUPR2","Quercus prinus"],["RO","northern red oak","QURU","Quercus rubra"],["QS","Shumard's oak","QUSH","Quercus shumardii"],["PO","post oak","QUST","Quercus stellata"],["BO","black oak","QUVE","Quercus velutina"],["LO","live oak","QUVI","Quercus virginiana"],["BK","black locust","ROPS","Robinia pseudoacacia"],["WI","willow","SALIX","Salix"],["SS","sassafras","SAAL5","Sassafras albidum"],["BD","basswood","TILIA","Tilia"],["EL","elm","ULMUS","Ulmus"],["WE","winged elm","ULAL","Ulmus alata"],["AE","American elm","ULAM","Ulmus americana"],["RL","slippery elm","ULRU","Ulmus rubra"],["OS","other softwood","",""],["OH","other hardwood","",""],["OT","other","",""]],
+  SO:[["WP","western white pine","PIMO3","Pinus monticola"],["SP","sugar pine","PILA","Pinus lambertiana"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["WF","white fir","ABCO","Abies concolor"],["MH","mountain hemlock","TSME","Tsuga mertensiana"],["IC","incense cedar","CADE27","Calocedrus decurrens"],["LP","lodgepole pine","PICO","Pinus contorta"],["ES","Engelmann spruce","PIEN","Picea engelmannii"],["SH","Shasta red fir","ABSH","Abies shastensis"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["WJ","western juniper","JUOC","Juniperus occidentalis"],["GF","grand fir","ABGR","Abies grandis"],["AF","subalpine fir","ABLA","Abies lasiocarpa"],["SF","Pacific silver fir","ABAM","Abies amabilis"],["NF","noble fir","ABPR","Abies procera"],["WB","whitebark pine","PIAL","Pinus albicaulis"],["WL","western larch","LAOC","Larix occidentalis"],["RC","western redcedar","THPL","Thuja plicata"],["WH","western hemlock","TSHE","Tsuga heterophylla"],["PY","Pacific yew","TABR2","Taxus brevifolia"],["WA","white alder","ALRH2","Alnus rhombifolia"],["RA","red alder","ALRU2","Alnus rubra"],["BM","bigleaf maple","ACMA3","Acer macrophyllum"],["AS","quaking aspen","POTR5","Populus tremuloides"],["CW","black cottonwood","POBAT","Populus balsamifera ssp. trichocarpa"],["CH","bitter cherry","PREM","Prunus emarginata"],["WO","Oregon white oak","QUGA4","Quercus garryana"],["WI","willow","SALIX","Salix"],["GC","giant chinquapin","CHCHC4","Chrysolepis chrysophylla var. chrysophylla"],["MC","curl-leaf mountain mahogany","CELE3","Cercocarpus ledifolius"],["MB","birchleaf mountain mahogany","CEMOG","Cercocarpus montanus var. glaber"],["OS","other softwood","",""],["OH","other hardwood","",""]],
+  TT:[["WB","whitebark pine","PIAL","Pinus albicaulis"],["LM","limber pine","PIFL2","Pinus flexilis"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["PM","singleleaf pinyon","PIMO","Pinus monophylla"],["BS","blue spruce","PIPU","Picea pungens"],["AS","quaking aspen","POTR5","Populus tremuloides"],["LP","lodgepole pine","PICO","Pinus contorta"],["ES","Engelmann spruce","PIEN","Picea engelmannii"],["AF","subalpine fir","ABLA","Abies lasiocarpa"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["UJ","Utah juniper","JUOS","Juniperus osteosperma"],["RM","Rocky Mountain juniper","JUSC2","Juniperus scopulorum"],["BI","bigtooth maple","ACGR3","Acer grandidentatum"],["MM","Rocky Mountain maple","ACGL","Acer glabrum"],["NC","narrowleaf cottonwood","POAN3","Populus angustifolia"],["MC","curl-leaf mountain mahogany","CELE3","Cercocarpus ledifolius"],["OS","other softwood","",""],["OH","other hardwood","",""]],
+  UT:[["WB","whitebark pine","PIAL","Pinus albicaulis"],["LM","limber pine","PIFL2","Pinus flexilis"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["WF","white fir","ABCO","Abies concolor"],["BS","blue spruce","PIPU","Picea pungens"],["AS","quaking aspen","POTR5","Populus tremuloides"],["LP","lodgepole pine","PICO","Pinus contorta"],["ES","Engelmann spruce","PIEN","Picea engelmannii"],["AF","subalpine fir","ABLA","Abies lasiocarpa"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["PI","common pinyon","PIED","Pinus edulis"],["WJ","western juniper","JUOC","Juniperus occidentalis"],["GO","Gambel oak","QUGA","Quercus gambelii"],["PM","singleleaf pinyon","PIMO","Pinus monophylla"],["RM","Rocky Mountain juniper","JUSC2","Juniperus scopulorum"],["UJ","Utah juniper","JUOS","Juniperus osteosperma"],["GB","Great Basin bristlecone pine","PILO","Pinus longaeva"],["NC","narrowleaf cottonwood","POAN3","Populus angustifolia"],["FC","Fremont cottonwood","POFR2","Populus fremontii"],["MC","curl-leaf mountain mahogany","CELE3","Cercocarpus ledifolius"],["BI","bigtooth maple","ACGR3","Acer grandidentatum"],["BE","boxelder","ACNE2","Acer negundo"],["OS","other softwood","",""],["OH","other hardwood","",""]],
+  WC:[["SF","Pacific silver fir","ABAM","Abies amabilis"],["WF","white fir","ABCO","Abies concolor"],["GF","grand fir","ABGR","Abies grandis"],["AF","subalpine fir","ABLA","Abies lasiocarpa"],["RF","California red fir","ABMA","Abies magnifica"],["NF","noble fir","ABPR","Abies procera"],["YC","Alaska cedar","CANO9","Callitropsis nootkatensis"],["IC","incense cedar","CADE27","Calocedrus decurrens"],["ES","Engelmann spruce","PIEN","Picea engelmannii"],["LP","lodgepole pine","PICO","Pinus contorta"],["JP","Jeffrey pine","PIJE","Pinus jeffreyi"],["SP","sugar pine","PILA","Pinus lambertiana"],["WP","western white pine","PIMO3","Pinus monticola"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["RW","redwood","SESE3","Sequoia sempervirens"],["RC","western redcedar","THPL","Thuja plicata"],["WH","western hemlock","TSHE","Tsuga heterophylla"],["MH","mountain hemlock","TSME","Tsuga mertensiana"],["BM","bigleaf maple","ACMA3","Acer macrophyllum"],["RA","red alder","ALRU2","Alnus rubra"],["WA","white alder","ALRH2","Alnus rhombifolia"],["PB","paper birch","BEPA","Betula papyrifera"],["GC","giant chinquapin","CHCHC4","Chrysolepis chrysophylla var. chrysophylla"],["AS","quaking aspen","POTR5","Populus tremuloides"],["CW","black cottonwood","POBAT","Populus balsamifera ssp. trichocarpa"],["WO","Oregon white oak","QUGA4","Quercus garryana"],["WJ","western juniper","JUOC","Juniperus occidentalis"],["LL","subalpine larch","LALY","Larix lyallii"],["WB","whitebark pine","PIAL","Pinus albicaulis"],["KP","knobcone pine","PIAT","Pinus attenuata"],["PY","Pacific yew","TABR2","Taxus brevifolia"],["DG","Pacific dogwood","CONU4","Cornus nuttallii"],["HT","hawthorn","CRATA","Crataegus"],["CH","bitter cherry","PREM","Prunus emarginata"],["WI","willow","SALIX","Salix"],["OT","other","",""]],
+  WS:[["SP","sugar pine","PILA","Pinus lambertiana"],["DF","Douglas-fir","PSME","Pseudotsuga menziesii"],["WF","white fir","ABCO","Abies concolor"],["GS","giant sequoia","SEGI2","Sequoiadendron giganteum"],["IC","incense cedar","CADE27","Calocedrus decurrens"],["JP","Jeffrey pine","PIJE","Pinus jeffreyi"],["RF","California red fir","ABMA","Abies magnifica"],["PP","ponderosa pine","PIPO","Pinus ponderosa"],["LP","lodgepole pine","PICO","Pinus contorta"],["WB","whitebark pine","PIAL","Pinus albicaulis"],["WP","western white pine","PIMO3","Pinus monticola"],["PM","singleleaf pinyon","PIMO","Pinus monophylla"],["SF","Pacific silver fir","ABAM","Abies amabilis"],["KP","knobcone pine","PIAT","Pinus attenuata"],["FP","foxtail pine","PIBA","Pinus balfouriana"],["CP","Coulter pine","PICO3","Pinus coulteri"],["LM","limber pine","PIFL2","Pinus flexilis"],["MP","Monterey pine","PIRA2","Pinus radiata"],["GP","California foothill pine","PISA2","Pinus sabiniana"],["WE","Washoe pine","PIWA","Pinus washoensis"],["GB","Great Basin bristlecone pine","PILO","Pinus longaeva"],["BD","bigcone Douglas-fir","PSMA","Pseudotsuga macrocarpa"],["RW","redwood","SESE3","Sequoia sempervirens"],["MH","mountain hemlock","TSME","Tsuga mertensiana"],["WJ","western juniper","JUOC","Juniperus occidentalis"],["UJ","Utah juniper","JUOS","Juniperus osteosperma"],["CJ","California juniper","JUCA7","Juniperus californica"],["LO","California live oak","QUAG","Quercus agrifolia"],["CY","canyon live oak","QUCH2","Quercus chrysolepis"],["BL","blue oak","QUDO","Quercus douglasii"],["BO","California black oak","QUKE","Quercus kelloggii"],["VO","valley oak","QULO","Quercus lobata"],["IO","interior live oak","QUWI2","Quercus wislizenii"],["TO","tanoak","LIDE3","Lithocarpus densiflorus"],["GC","giant chinquapin","CHCHC4","Chrysolepis chrysophylla var. chrysophylla"],["AS","quaking aspen","POTR5","Populus tremuloides"],["CL","California laurel","UMCA","Umbellularia californica"],["MA","Pacific madrone","ARME","Arbutus menziesii"],["DG","Pacific dogwood","CONU4","Cornus nuttallii"],["BM","bigleaf maple","ACMA3","Acer macrophyllum"],["MC","curl-leaf mountain mahogany","CELE3","Cercocarpus ledifolius"],["OS","other softwood","",""],["OH","other hardwood","",""]]
 };
 
 // ---------- State ----------
-const EMPTY_STATE = { schemaVersion:3, stands:{}, plots:{}, trees:{}, speciesLists:{}, verified:{}, activeStand:null, activePlot:null };
+const APP_SCHEMA_VERSION = 4;
+const EMPTY_STATE = { schemaVersion:APP_SCHEMA_VERSION, stands:{}, plots:{}, trees:{}, speciesLists:{}, verified:{}, standInfoStatus:{}, activeStand:null, activePlot:null };
 let state = JSON.parse(JSON.stringify(EMPTY_STATE));
 let ui = { tab:"stand", plotMethod:"variable", speciesVariant:"PN", importMode:false };
 let loaded = false;
@@ -72,6 +73,19 @@ function uid(prefix){
 }
 function standplotId(standId, plotId){ return standId+"_"+plotId; }
 function variantName(code){ const v=VARIANTS.find(x=>x[0]===code); return v?v[1]:""; }
+function normalizeSpeciesRow(row, variant){
+  const source=Array.isArray(row)?row:[];
+  const code=String(source[0]||"");
+  let scientific=String(source[3]||"");
+  // Custom species saved before v1.4.0 had three fields. Where the code is an
+  // official species for this variant, add the supplied scientific name during
+  // migration without altering the user's common name or PLANTS code.
+  if(!scientific && variant && OFFICIAL_SPECIES[variant]){
+    const official=OFFICIAL_SPECIES[variant].find(item=>String(item[0])===code);
+    if(official) scientific=String(official[3]||"");
+  }
+  return [code,String(source[1]||""),String(source[2]||""),scientific];
+}
 function getSpecies(variant){
   if(!variant) return [];
   if(state.speciesLists[variant]) return state.speciesLists[variant];
@@ -82,21 +96,37 @@ function isVerified(variant){
   if(!state.speciesLists[variant] && OFFICIAL_SPECIES[variant]) return true;
   return false;
 }
+function standInfoSnapshot(stand){
+  const snapshot={};
+  Object.keys(stand||{}).filter(key=>!key.startsWith('_')).sort().forEach(key=>{
+    const value=stand[key];
+    snapshot[key]=(value===undefined||value===null)?"":String(value);
+  });
+  return snapshot;
+}
+function sameStandInfo(left,right){
+  return JSON.stringify(standInfoSnapshot(left))===JSON.stringify(standInfoSnapshot(right));
+}
 function normalizeState(saved){
   if(typeof saved==='string'){
     try{ saved=JSON.parse(saved); }catch(error){ saved=null; }
   }
   const source=(saved && typeof saved==='object')?JSON.parse(JSON.stringify(saved)):{};
   const normalized={
-    schemaVersion:3,
+    schemaVersion:APP_SCHEMA_VERSION,
     stands:(source.stands && typeof source.stands==='object')?source.stands:{},
     plots:(source.plots && typeof source.plots==='object')?source.plots:{},
     trees:(source.trees && typeof source.trees==='object')?source.trees:{},
     speciesLists:(source.speciesLists && typeof source.speciesLists==='object')?source.speciesLists:{},
     verified:(source.verified && typeof source.verified==='object')?source.verified:{},
+    standInfoStatus:{},
     activeStand:source.activeStand||null,
     activePlot:source.activePlot||null
   };
+  Object.keys(normalized.speciesLists).forEach(variant=>{
+    const rows=normalized.speciesLists[variant];
+    normalized.speciesLists[variant]=Array.isArray(rows)?rows.map(row=>normalizeSpeciesRow(row,variant)):[];
+  });
   if(normalized.activeStand && !normalized.stands[normalized.activeStand]) normalized.activeStand=null;
   if(normalized.activePlot && !normalized.plots[normalized.activePlot]) normalized.activePlot=null;
   Object.values(normalized.stands).forEach(stand=>{
@@ -104,9 +134,31 @@ function normalizeState(saved){
     if(stand.ecoregion===undefined || stand.ecoregion===null) stand.ecoregion="";
     if(stand.pv_code===undefined || stand.pv_code===null) stand.pv_code="";
     if(stand.pv_ref_code===undefined || stand.pv_ref_code===null) stand.pv_ref_code="";
+    if(stand.baf===undefined || stand.baf===null) stand.baf="";
+    if(stand.denom===undefined || stand.denom===null || stand.denom==="") stand.denom="100";
+    if(stand.brk_dbh===undefined || stand.brk_dbh===null || stand.brk_dbh==="") stand.brk_dbh="5";
+    if(!stand.dbh_mode) stand.dbh_mode="real";
     if(stand.variant==='SN'){
       stand.pv_code="";
       stand.pv_ref_code="";
+    }
+  });
+  const sourceStatus=(source.standInfoStatus && typeof source.standInfoStatus==='object')?source.standInfoStatus:null;
+  Object.keys(normalized.stands).forEach(standId=>{
+    const stand=normalized.stands[standId];
+    const prior=sourceStatus&&sourceStatus[standId];
+    if(prior && typeof prior==='object'){
+      const savedFlag=!!prior.saved && prior.snapshot && typeof prior.snapshot==='object';
+      const snapshot=savedFlag?standInfoSnapshot(prior.snapshot):null;
+      normalized.standInfoStatus[standId]={
+        saved:savedFlag,
+        dirty:savedFlag?!sameStandInfo(stand,snapshot):true,
+        snapshot
+      };
+    }else{
+      // v1.3.0 and earlier did not track Stand Info save state. Treat migrated
+      // and imported legacy stands as already saved so existing users are not locked out.
+      normalized.standInfoStatus[standId]={saved:true,dirty:false,snapshot:standInfoSnapshot(stand)};
     }
   });
   Object.values(normalized.plots).forEach(plot=>{
@@ -117,12 +169,70 @@ function normalizeState(saved){
   });
   return normalized;
 }
+function getStandInfoStatus(standId){
+  if(!state.standInfoStatus || typeof state.standInfoStatus!=="object") state.standInfoStatus={};
+  let status=state.standInfoStatus[standId];
+  const stand=state.stands[standId];
+  if(!status && stand){
+    status={saved:true,dirty:false,snapshot:standInfoSnapshot(stand)};
+    state.standInfoStatus[standId]=status;
+  }
+  return status||{saved:false,dirty:true,snapshot:null};
+}
+function refreshStandInfoDirty(standId){
+  const stand=state.stands[standId];
+  const status=getStandInfoStatus(standId);
+  if(!stand) return true;
+  status.dirty=status.saved && status.snapshot ? !sameStandInfo(stand,status.snapshot) : true;
+  updateStandInfoStatusBadge(standId);
+  return status.dirty;
+}
+function isStandInfoReady(standId){
+  const status=getStandInfoStatus(standId);
+  return !!status.saved && !status.dirty && !!status.snapshot;
+}
+function hasSavedStandInfo(standId){
+  const status=getStandInfoStatus(standId);
+  return !!status.saved && !!status.snapshot;
+}
+function standInfoStatusLabel(standId){
+  const status=getStandInfoStatus(standId);
+  if(!status.saved || !status.snapshot) return "Not saved";
+  return status.dirty?"Unsaved changes":"Saved";
+}
+function standInfoStatusClass(standId){
+  const status=getStandInfoStatus(standId);
+  if(!status.saved || !status.snapshot) return "not-saved";
+  return status.dirty?"dirty":"saved";
+}
+function updateStandInfoStatusBadge(standId){
+  const badge=document.getElementById('standInfoSaveBadge');
+  if(!badge||standId!==state.activeStand) return;
+  badge.textContent=standInfoStatusLabel(standId);
+  badge.className='stand-save-badge '+standInfoStatusClass(standId);
+}
+function markStandInfoSaved(standId){
+  const stand=state.stands[standId];
+  if(!stand) return;
+  state.standInfoStatus[standId]={saved:true,dirty:false,snapshot:standInfoSnapshot(stand)};
+}
+function markStandInfoNeverSaved(standId){
+  state.standInfoStatus[standId]={saved:false,dirty:true,snapshot:null};
+}
+function updateStandInfoStatusDisplay(standId){
+  const id=standId||state.activeStand;
+  const badge=document.getElementById('standInfoSaveBadge');
+  if(!id||!badge||id!==state.activeStand) return;
+  badge.className='stand-save-badge '+standInfoStatusClass(id);
+  badge.textContent=standInfoStatusLabel(id);
+}
+
 function announceSave(status, backend){
   window.dispatchEvent(new CustomEvent('plotter-save-status',{detail:{status,backend}}));
 }
 function saveState(){
   const revision=++saveRevision;
-  const snapshot=JSON.parse(JSON.stringify({...state,schemaVersion:3}));
+  const snapshot=JSON.parse(JSON.stringify({...state,schemaVersion:APP_SCHEMA_VERSION}));
   announceSave('saving');
   saveChain=saveChain.catch(()=>{}).then(async()=>{
     if(!window.AppStorage) throw new Error('Device storage module did not load.');
@@ -187,6 +297,77 @@ function modalConfirm(title, cb){
   const close=()=>document.body.removeChild(ov);
   ov.querySelector('#mdl_cancel').onclick=close;
   ov.querySelector('#mdl_ok').onclick=()=>{close();cb();};
+}
+
+let standDraftPersistTimer=null;
+function scheduleStandDraftPersistence(){
+  window.clearTimeout(standDraftPersistTimer);
+  standDraftPersistTimer=window.setTimeout(()=>{
+    standDraftPersistTimer=null;
+    saveState();
+  },300);
+}
+function flushStandDraftPersistence(){
+  if(!standDraftPersistTimer) return null;
+  window.clearTimeout(standDraftPersistTimer);
+  standDraftPersistTimer=null;
+  return saveState();
+}
+function captureStandFormDraft(options){
+  const opts=options||{};
+  const stand=state.stands[state.activeStand];
+  const card=document.getElementById('standInfoCard');
+  if(!stand||!card) return false;
+  const before=JSON.stringify(standInfoSnapshot(stand));
+  const g=id=>document.getElementById(id);
+  const value=(id,current)=>{ const el=g(id); return el?el.value:current; };
+  stand.variant=String(value('f_variant',stand.variant)||'').trim();
+  stand.inv_year=value('f_invyear',stand.inv_year);
+  stand.location=String(value('f_location',stand.location)||'').trim();
+  stand.crew=String(value('f_crew',stand.crew)||'').trim();
+  stand.date=value('f_date',stand.date);
+  if(stand.variant==='SN'){
+    stand.ecoregion=String(value('f_ecoregion',stand.ecoregion)||'').trim();
+    stand.pv_code=''; stand.pv_ref_code='';
+  }else{
+    stand.pv_code=String(value('f_pvcode',stand.pv_code)||'').trim();
+    stand.pv_ref_code=String(value('f_pvref',stand.pv_ref_code)||'').trim();
+  }
+  stand.elevation=value('f_elev',stand.elevation);
+  stand.latitude=String(value('f_lat',stand.latitude)||'').trim();
+  stand.longitude=String(value('f_lon',stand.longitude)||'').trim();
+  stand.slope=value('f_slope',stand.slope);
+  stand.aspect=value('f_aspect',stand.aspect);
+  stand.baf=value('f_baf',stand.baf);
+  stand.denom=value('f_denom',stand.denom);
+  stand.brk_dbh=value('f_brkdbh',stand.brk_dbh);
+  stand.notes=value('f_notes',stand.notes);
+  const changed=before!==JSON.stringify(standInfoSnapshot(stand));
+  refreshStandInfoDirty(stand.stand_id);
+  updateStandInfoStatusDisplay(stand.stand_id);
+  if(opts.persist!==false && changed) scheduleStandDraftPersistence();
+  return changed;
+}
+function onStandFormDraftEvent(event){
+  const target=event&&event.target;
+  if(!target||!target.id||!target.id.startsWith('f_')||target.id==='f_variant') return;
+  captureStandFormDraft();
+}
+function preserveActiveStandDraft(){
+  const latEl=document.getElementById('f_lat');
+  const lonEl=document.getElementById('f_lon');
+  const coordinatesChanged=!!(latEl&&lonEl&&(
+    latEl.value.trim()!==(latEl.dataset.variantCoordinate||'') ||
+    lonEl.value.trim()!==(lonEl.dataset.variantCoordinate||'')
+  ));
+  const changed=captureStandFormDraft({persist:false});
+  if(coordinatesChanged){
+    window.clearTimeout(standCoordinateTimer);
+    standCoordinateTimer=null;
+    processStandCoordinates('manual');
+    return;
+  }
+  if(changed||standDraftPersistTimer) flushStandDraftPersistence()||saveState();
 }
 
 // ---------- Derived ----------
@@ -366,37 +547,27 @@ function updateStandRadiusHint(){
   const d=parseFloat(el.value)||0;
   hint.textContent = d>0 ? ("1/"+d+" acre = "+fractionToRadius(d).toFixed(2)+" ft radius") : "— enter a denominator —";
 }
-function computeTPA(plot, dbh, count){
-  dbh = parseFloat(dbh)||0; count = parseFloat(count)||1;
-  const s=state.stands[plot.stand_id]; if(!s) return 0;
-  const brkRaw=parseFloat(s.brk_dbh); const brk=isNaN(brkRaw)?5:brkRaw;
-  if(dbh>=brk){
-    const baf=parseFloat(s.baf)||0;
-    if(dbh<=0||baf<=0) return 0;
-    return count*baf/(0.005454*dbh*dbh);
-  } else {
-    const denom=parseFloat(s.denom)||0;
-    return denom ? count*denom : 0;
-  }
-}
 
 // ---------- Stand actions ----------
-function setTab(t){ ui.tab=t; render(); }
+function setTab(t){ preserveActiveStandDraft(); ui.tab=t; render(); }
 function newStand(){
   modalPrompt("New Stand ID (e.g. 12-034-A):", (id)=>{
     if(!id) return;
+    preserveActiveStandDraft();
     const key=id.trim(); if(!key) return;
     if(state.stands[key]){ toast("Stand exists — selected."); state.activeStand=key; render(); return; }
     state.stands[key]={
       stand_id:key, variant:"", inv_year:new Date().getFullYear(), region:"", forest:"",
       district:"", location:"", crew:"", date:new Date().toISOString().slice(0,10),
       site_species:"", site_index:"", pv_code:"", pv_ref_code:"", ecoregion:"", elevation:"",
-      latitude:"", longitude:"", slope:"", aspect:"", state_cd:"", county:"", notes:""
+      latitude:"", longitude:"", slope:"", aspect:"", state_cd:"", county:"", notes:"",
+      baf:"", denom:"100", brk_dbh:"5", dbh_mode:"real"
     };
+    markStandInfoNeverSaved(key);
     state.activeStand=key; state.activePlot=null; saveState(); render();
   });
 }
-function selectStand(id){ state.activeStand=id||null; state.activePlot=null; render(); }
+function selectStand(id){ preserveActiveStandDraft(); state.activeStand=id||null; state.activePlot=null; render(); }
 function variantSpecificFieldsHTML(variant, stand){
   const s=stand||{};
   if(variant==='SN'){
@@ -442,7 +613,9 @@ function setStandVariantSelection(nextVariant, source, options){
   if(loc) loc.innerHTML=locationOptions(next,changed?'':s.location);
   updateVariantSpecificFields(next);
   updateVariantMap();
-  if(opts.save!==false) saveState();
+  refreshStandInfoDirty(s.stand_id);
+  updateStandInfoStatusDisplay(s.stand_id);
+  if(opts.save!==false) scheduleStandDraftPersistence();
   if(!opts.silent && changed && next){
     const prefix=source==='map'?'Map selection':'Variant';
     toast(prefix+': '+next+' — '+variantName(next));
@@ -453,36 +626,43 @@ function onStandVariantChange(){
   const sel=document.getElementById('f_variant');
   if(sel) setStandVariantSelection(sel.value,'manual');
 }
-function saveStandForm(){
+async function saveStandForm(){
   const s=state.stands[state.activeStand]; if(!s) return;
-  const g=id=>document.getElementById(id);
-  const variant=g('f_variant').value.trim();
-  if(!variant){ toast("⚠ Select an FVS Variant to save the stand"); return; }
-  if(!g('f_location').value.trim()){ toast("⚠ Select a Location to save the stand"); return; }
-  const bafVal=g('f_baf').value.trim();
-  if(bafVal===''||!(parseFloat(bafVal)>0)){ toast("⚠ Enter a Variable BAF to save the stand"); return; }
-  s.variant=variant; s.inv_year=g('f_invyear').value;
-  s.location=g('f_location').value.trim();
-  s.crew=g('f_crew').value.trim(); s.date=g('f_date').value;
-  if(variant==='SN'){
-    s.ecoregion=(g('f_ecoregion')?g('f_ecoregion').value.trim():'');
+  captureStandFormDraft({persist:false});
+  if(!s.variant){ toast("⚠ Select an FVS Variant to save the stand"); scheduleStandDraftPersistence(); return; }
+  if(!String(s.location||'').trim()){ toast("⚠ Select a Location to save the stand"); scheduleStandDraftPersistence(); return; }
+  const bafVal=String(s.baf??'').trim();
+  if(bafVal===''||!(parseFloat(bafVal)>0)){ toast("⚠ Enter a Variable BAF to save the stand"); scheduleStandDraftPersistence(); return; }
+  if(s.variant==='SN'){
+    s.ecoregion=String(s.ecoregion||'').trim();
     s.pv_code=''; s.pv_ref_code='';
-  }else{
-    s.pv_code=(g('f_pvcode')?g('f_pvcode').value.trim():'');
-    s.pv_ref_code=(g('f_pvref')?g('f_pvref').value.trim():'');
   }
-  s.elevation=g('f_elev').value; s.latitude=g('f_lat').value.trim(); s.longitude=g('f_lon').value.trim();
-  s.slope=g('f_slope').value; s.aspect=g('f_aspect').value;
-  s.baf=g('f_baf').value; s.denom=g('f_denom').value; s.brk_dbh=g('f_brkdbh').value;
-  s.notes=g('f_notes').value;
-  saveState(); updateVariantMap(); toast("Stand info saved");
+  const priorStatus=JSON.parse(JSON.stringify(getStandInfoStatus(s.stand_id)));
+  markStandInfoSaved(s.stand_id);
+  // Replace any pending draft write with this single authoritative save.
+  if(standDraftPersistTimer){
+    window.clearTimeout(standDraftPersistTimer);
+    standDraftPersistTimer=null;
+  }
+  const backend=await saveState();
+  if(!backend){
+    state.standInfoStatus[s.stand_id]=priorStatus;
+    refreshStandInfoDirty(s.stand_id);
+    render();
+    return;
+  }
+  updateVariantMap();
+  render();
+  toast("Stand info saved");
 }
 function setDbhMode(m){
   const s=state.stands[state.activeStand]; if(!s) return;
   s.dbh_mode=m;
   const rb=document.getElementById('dbhbtn_real'), ib=document.getElementById('dbhbtn_idbh');
   if(rb&&ib){ rb.classList.toggle('active',m!=='idbh'); ib.classList.toggle('active',m==='idbh'); }
-  saveState();
+  refreshStandInfoDirty(s.stand_id);
+  updateStandInfoStatusDisplay(s.stand_id);
+  scheduleStandDraftPersistence();
   toast(m==='idbh'?"IDBH entry enabled (values ÷10)":"RealDBH entry enabled");
 }
 function deleteStand(id){
@@ -492,6 +672,7 @@ function deleteStand(id){
       delete state.plots[p.plot_key];
     });
     delete state.stands[id];
+    if(state.standInfoStatus) delete state.standInfoStatus[id];
     if(state.activeStand===id) state.activeStand=null;
     saveState(); render();
   });
@@ -520,14 +701,17 @@ function processStandCoordinates(source, accuracy){
   s.longitude=lonEl.value.trim();
   latEl.dataset.variantCoordinate=s.latitude;
   lonEl.dataset.variantCoordinate=s.longitude;
-  const lat=Number(s.latitude), lon=Number(s.longitude);
-  const valid=Number.isFinite(lat)&&Number.isFinite(lon)&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180;
+  const latText=String(s.latitude||'').trim(), lonText=String(s.longitude||'').trim();
+  const lat=Number(latText), lon=Number(lonText);
+  const valid=latText!==''&&lonText!==''&&Number.isFinite(lat)&&Number.isFinite(lon)&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180;
   let detected=null;
   if(valid){
     detected=findVariantAtCoordinates(lat,lon);
     if(detected) setStandVariantSelection(detected,'automatic',{silent:true,save:false});
   }
   updateVariantMap();
+  refreshStandInfoDirty(s.stand_id);
+  updateStandInfoStatusDisplay(s.stand_id);
   saveState();
   if(source==='gps'){
     const acc=Number.isFinite(accuracy)?' (±'+Math.round(accuracy)+' m)':'';
@@ -565,11 +749,36 @@ function captureLoc(latId, lonId){
     toast(message);
   },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
 }
+function resetStandLocation(){
+  const stand=state.stands[state.activeStand];
+  const lat=document.getElementById('f_lat');
+  const lon=document.getElementById('f_lon');
+  if(!stand||!lat||!lon) return;
+
+  window.clearTimeout(standCoordinateTimer);
+  standCoordinateTimer=null;
+
+  const changed=lat.value.trim()!=='' || lon.value.trim()!=='' ||
+    String(stand.latitude||'').trim()!=='' || String(stand.longitude||'').trim()!=='';
+  lat.value='';
+  lon.value='';
+  lat.dataset.variantCoordinate='';
+  lon.dataset.variantCoordinate='';
+  stand.latitude='';
+  stand.longitude='';
+
+  updateVariantMap();
+  refreshStandInfoDirty(stand.stand_id);
+  updateStandInfoStatusDisplay(stand.stand_id);
+  if(changed) saveState();
+  toast(changed?'Stand coordinates and map pin cleared':'Stand coordinates are already empty');
+}
 
 // ---------- Plot actions ----------
 function setPlotMethod(m){ ui.plotMethod=m; render(); }
 function addPlot(){
   const s=state.stands[state.activeStand]; if(!s){ toast("Select a stand first"); return; }
+  if(!isStandInfoReady(s.stand_id)){ toast("Save Stand Info before adding a plot"); return; }
   const g=id=>document.getElementById(id);
   const plotId=parseInt(g('p_id').value)||(plotsForStand(s.stand_id).length+1);
   if(plotsForStand(s.stand_id).some(p=>p.plot_id===plotId)){ toast("⚠ Plot "+plotId+" already exists in Stand "+s.stand_id); return; }
@@ -594,6 +803,7 @@ function deletePlot(k){
 // ---------- Tree actions ----------
 function addTree(){
   const plot=state.plots[state.activePlot]; if(!plot){ toast("Select a plot first"); return; }
+  if(!isStandInfoReady(plot.stand_id)){ toast("Save Stand Info before adding a tree"); return; }
   const g=id=>document.getElementById(id);
   let species=g('t_species').value;
   if(species==="__OTHER__"){ species=(g('t_species_other').value||"UNK").trim().toUpperCase(); }
@@ -626,10 +836,11 @@ function addSpeciesRow(){
   const code=document.getElementById('sp_new_code').value.trim().toUpperCase();
   const name=document.getElementById('sp_new_name').value.trim();
   const plants=document.getElementById('sp_new_plants').value.trim().toUpperCase();
+  const scientific=document.getElementById('sp_new_scientific').value.trim();
   if(!code){ toast("Enter a species code"); return; }
   const list=currentSpeciesList();
   if(list.some(x=>x[0]===code)){ toast("Code already in list"); return; }
-  list.push([code,name,plants]);
+  list.push([code,name,plants,scientific]);
   saveState(); render();
 }
 function removeSpecies(code){
@@ -644,7 +855,7 @@ function doImport(){
   const parsed=[];
   lines.forEach(l=>{
     const m=l.match(/^(\S+)\s*(.*)$/);
-    if(m){ parsed.push([m[1].toUpperCase(), (m[2]||"").trim(), ""]); }
+    if(m){ parsed.push([m[1].toUpperCase(), (m[2]||"").trim(), "", ""]); }
   });
   if(!parsed.length){ toast("Nothing parsed"); return; }
   state.speciesLists[ui.speciesVariant]=parsed;
@@ -675,10 +886,10 @@ function standBaseFields(s){
   };
 }
 const DEAD_HISTORY_CODE="6", LIVE_HISTORY_CODE="1";
-function gatherExportData(standIds){
+function gatherExportData(standIds, standOverrides){
   const standRows=[], plotRows=[], treeRows=[], metaRows=[];
   standIds.forEach(sid=>{
-    const s=state.stands[sid]; if(!s) return;
+    const s=(standOverrides&&standOverrides[sid])||state.stands[sid]; if(!s) return;
     const plots=plotsForStand(sid);
     const sr=blankRow(STAND_HEADERS); Object.assign(sr, standBaseFields(s));
     sr.STAND_ID=s.stand_id; sr.NUM_PLOTS=plots.length;
@@ -759,6 +970,55 @@ async function deliverFiles(files, bundleName){
   return "zipped";
 }
 function getSelectedStandIds(){ return Array.from(document.querySelectorAll('.exp-check:checked')).map(el=>el.value); }
+function focusStandInfo(standId){
+  state.activeStand=standId||state.activeStand;
+  state.activePlot=null;
+  ui.tab='stand';
+  render();
+  window.setTimeout(()=>document.getElementById('standInfoCard')?.scrollIntoView({block:'start'}),0);
+}
+function exportStandWarningDialog(mode, standIds){
+  return new Promise(resolve=>{
+    const overlay=document.createElement('div');
+    overlay.className='modal-overlay';
+    const names=standIds.map(escapeHTML).join(', ');
+    const never=mode==='never';
+    overlay.innerHTML=`<div class="choice-dialog" role="dialog" aria-modal="true" aria-labelledby="export-warning-title">
+      <h2 id="export-warning-title">${never?'Save Stand Info before exporting':'Unsaved Stand Info'}</h2>
+      <p>${never
+        ?`The following selected stand${standIds.length===1?' has':'s have'} never been saved: <strong>${names}</strong>. Export is blocked until Stand Info is saved.`
+        :`The following selected stand${standIds.length===1?' has':'s have'} unsaved Stand Info: <strong>${names}</strong>. Choose whether to return and save, or export the last saved values.`}</p>
+      <div class="choice-dialog-actions">
+        <button type="button" class="secondary" data-action="return">Return to Stand Info</button>
+        ${never?'<button type="button" data-action="cancel">Cancel</button>':'<button type="button" data-action="last-saved">Export Last Saved Values</button>'}
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+    const close=value=>{ overlay.remove(); resolve(value); };
+    overlay.querySelector('[data-action="return"]').onclick=()=>close('return');
+    const other=overlay.querySelector(never?'[data-action="cancel"]':'[data-action="last-saved"]');
+    other.onclick=()=>close(never?'cancel':'last-saved');
+    window.setTimeout(()=>overlay.querySelector('[data-action="return"]')?.focus(),0);
+  });
+}
+async function prepareExportStandSources(standIds){
+  const neverSaved=standIds.filter(id=>!hasSavedStandInfo(id));
+  if(neverSaved.length){
+    const action=await exportStandWarningDialog('never',neverSaved);
+    if(action==='return') focusStandInfo(neverSaved[0]);
+    return null;
+  }
+  const dirty=standIds.filter(id=>getStandInfoStatus(id).dirty);
+  if(!dirty.length) return {standOverrides:{},usedLastSaved:false};
+  const action=await exportStandWarningDialog('dirty',dirty);
+  if(action!=='last-saved'){
+    focusStandInfo(dirty[0]);
+    return null;
+  }
+  const standOverrides={};
+  dirty.forEach(id=>{ standOverrides[id]=JSON.parse(JSON.stringify(getStandInfoStatus(id).snapshot)); });
+  return {standOverrides,usedLastSaved:true};
+}
 function exportStamp(){
   const d=new Date(), p=n=>String(n).padStart(2,'0');
   return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
@@ -766,7 +1026,8 @@ function exportStamp(){
 async function exportCSV(){
   const ids=getSelectedStandIds(); if(!ids.length){ toast("Select at least one stand"); return; }
   try{
-    const {standRows, plotRows, treeRows}=gatherExportData(ids);
+    const exportPlan=await prepareExportStandSources(ids); if(!exportPlan) return;
+    const {standRows, plotRows, treeRows}=gatherExportData(ids,exportPlan.standOverrides);
     const ts=exportStamp();
     const files=[
       makeExportFile([toCSV(standRows,STAND_HEADERS)],"FVS_StandInit_"+ts+".csv","text/csv;charset=utf-8"),
@@ -787,8 +1048,9 @@ async function exportXLSX(){
   const ids=getSelectedStandIds(); if(!ids.length){ toast("Select at least one stand"); return; }
   try{
     if(!window.FVSXLSX) throw new Error("Offline Excel module did not load.");
+    const exportPlan=await prepareExportStandSources(ids); if(!exportPlan) return;
     toast("Preparing Excel workbook…");
-    const {standRows, plotRows, treeRows, metaRows}=gatherExportData(ids);
+    const {standRows, plotRows, treeRows, metaRows}=gatherExportData(ids,exportPlan.standOverrides);
     const out=await window.FVSXLSX.writeWorkbook([
       {name:"FVS_StandInit",headers:STAND_HEADERS,rows:standRows},
       {name:"FVS_PlotInit",headers:PLOT_HEADERS,rows:plotRows},
@@ -905,13 +1167,17 @@ function importData(bundle){
   if(!standRows.length && !plotRows.length && !treeRows.length){ toast("No FVS data found to import"); return; }
   const meta={}; metaRows.forEach(r=>{ const id=String(r.STAND_ID||'').trim(); if(id) meta[id]=r; });
   let addedStands=0, addedPlots=0, addedTrees=0, skippedPlots=0;
+  const importedStandIds=new Set();
+  const touchedStandIds=new Set();
   standRows.forEach(r=>{ const id=String(r.STAND_ID||'').trim(); if(!id) return;
-    if(!state.stands[id]){ state.stands[id]=mkStandFromRow(id,r,meta[id]); addedStands++; } });
+    touchedStandIds.add(id);
+    if(!state.stands[id]){ state.stands[id]=mkStandFromRow(id,r,meta[id]); importedStandIds.add(id); addedStands++; } });
   const keyByPair={}; Object.values(state.plots).forEach(p=>{ keyByPair[p.stand_id+'|'+p.plot_id]=p.plot_key; });
   const newPlotKeys={};
   plotRows.forEach(r=>{ const sid=String(r.STAND_ID||'').trim(); const pid=parseInt(r.PLOT_ID);
     if(!sid||isNaN(pid)) return;
-    if(!state.stands[sid]){ state.stands[sid]=mkStandFromRow(sid,r,meta[sid]); addedStands++; }
+    touchedStandIds.add(sid);
+    if(!state.stands[sid]){ state.stands[sid]=mkStandFromRow(sid,r,meta[sid]); importedStandIds.add(sid); addedStands++; }
     else {
       const stand=state.stands[sid];
       if(!stand.variant && r.VARIANT) stand.variant=String(r.VARIANT).trim();
@@ -942,6 +1208,8 @@ function importData(bundle){
       damage2:String(r.DAMAGE2||''), severity2:String(r.SEVERITY2||'') };
     addedTrees++;
   });
+  importedStandIds.forEach(markStandInfoSaved);
+  touchedStandIds.forEach(id=>{ if(!importedStandIds.has(id)) refreshStandInfoDirty(id); });
   saveState(); ui.tab='review'; render();
   toast("Imported "+addedStands+" stands, "+addedPlots+" plots, "+addedTrees+" trees"+(skippedPlots?" · "+skippedPlots+" existing plots skipped":""));
 }
@@ -1451,7 +1719,9 @@ function pickVariant(v){
   setStandVariantSelection(v,'map');
 }
 function mapPinSVG(latitude,longitude,md,conusProjector,alaskaProjector,conusBox,alaskaBox){
-  const lat=Number(latitude), lon=Number(longitude);
+  const latText=String(latitude??'').trim(), lonText=String(longitude??'').trim();
+  if(latText===''||lonText==='') return '';
+  const lat=Number(latText), lon=Number(lonText);
   if(!Number.isFinite(lat)||!Number.isFinite(lon)||lat<-90||lat>90||lon<-180||lon>180) return '';
   const detected=findVariantAtCoordinates(lat,lon);
   const useAlaska=detected==='AK'||(lat>=50&&lon<=-125);
@@ -1579,8 +1849,8 @@ function render(){
   if(ui.tab==='stand' && activeStand){
     const s=activeStand;
     html+=`
-    <div class="card">
-      <div class="section-title">Stand Info — ${s.stand_id}</div>
+    <div class="card" id="standInfoCard" oninput="onStandFormDraftEvent(event)" onchange="onStandFormDraftEvent(event)">
+      <div class="section-title">Stand Info — ${escapeHTML(s.stand_id)} <span id="standInfoSaveBadge" class="stand-save-badge ${standInfoStatusClass(s.stand_id)}" aria-live="polite">${standInfoStatusLabel(s.stand_id)}</span></div>
       <div class="row">
         <div class="field wide"><label>FVS Variant</label>
           <select id="f_variant" onchange="onStandVariantChange()">${variantOptions(s.variant)}</select>
@@ -1614,11 +1884,14 @@ function render(){
         <div class="field"><label>Aspect</label><select id="f_aspect">${aspectOptions(s.aspect)}</select></div>
         <div class="field small"><label>Latitude</label><input id="f_lat" inputmode="decimal" autocomplete="off" value="${escapeAttr(s.latitude)}" data-variant-coordinate="${escapeAttr(String(s.latitude||'').trim())}" onblur="queueStandCoordinateEvaluation()"></div>
         <div class="field small"><label>Longitude</label><input id="f_lon" inputmode="decimal" autocomplete="off" value="${escapeAttr(s.longitude)}" data-variant-coordinate="${escapeAttr(String(s.longitude||'').trim())}" onblur="queueStandCoordinateEvaluation()"></div>
-        <div class="field small" style="flex:0;"><label>&nbsp;</label><button class="secondary" onclick="captureLoc('f_lat','f_lon')">📍 Loc</button></div>
+        <div class="field location-action-field"><label>Location tools</label><div class="location-action-buttons"><button class="secondary" onclick="captureLoc('f_lat','f_lon')">📍 Loc</button><button class="secondary" onclick="resetStandLocation()">Reset</button></div></div>
       </div>
       <div class="row"><div class="field wide"><label>Notes</label><textarea id="f_notes" rows="2">${s.notes}</textarea></div></div>
       <div class="divider"></div>
-      <button onclick="saveStandForm()">Save Stand Info</button>
+      <div class="stand-save-actions">
+        <button onclick="saveStandForm()">Save Stand Info</button>
+        <span class="muted">Plots and trees can be added only after this information is saved.</span>
+      </div>
       <div id="variantMapWrap" style="margin-top:16px;">${standMapSVG(s.variant,s.latitude,s.longitude)}</div>
     </div>`;
   }
@@ -1628,9 +1901,12 @@ function render(){
     const plots=plotsForStand(activeStand.stand_id);
     const activePlot=state.plots[state.activePlot];
     const spList=getSpecies(activeStand.variant);
+    const standReady=isStandInfoReady(activeStand.stand_id);
+    const standStatus=standInfoStatusLabel(activeStand.stand_id);
     html+=`
     <div class="card">
-      <div class="section-title">Add Plot <span class="muted" style="font-weight:400;">(Stand ${activeStand.stand_id})</span></div>
+      <div class="section-title">Add Plot <span class="muted" style="font-weight:400;">(Stand ${escapeHTML(activeStand.stand_id)})</span></div>
+      ${!standReady?`<div class="note-box warning-note"><strong>${escapeHTML(standStatus)}:</strong> Save Stand Info before adding plots or trees. Existing plots and trees remain available.</div>`:''}
       <div class="row">
         <div class="field small"><label>Plot #</label><input id="p_id" type="number" value="${plots.length+1}"></div>
         <div class="field small"><label>Slope (%)</label><input id="p_slope" type="number"></div>
@@ -1638,7 +1914,7 @@ function render(){
         <div class="field small"><label>Latitude</label><input id="p_lat" inputmode="decimal" autocomplete="off"></div>
         <div class="field small"><label>Longitude</label><input id="p_lon" inputmode="decimal" autocomplete="off"></div>
         <div class="field small" style="flex:0;"><label>&nbsp;</label><button class="secondary" onclick="captureLoc('p_lat','p_lon')">📍</button></div>
-        <div class="field small" style="flex:0;"><label>&nbsp;</label><button onclick="addPlot()">+ Add Plot</button></div>
+        <div class="field small" style="flex:0;"><label>&nbsp;</label><button onclick="addPlot()" ${standReady?'':'disabled aria-disabled="true" title="Save Stand Info first"'}>+ Add Plot</button></div>
       </div>
     </div>`;
 
@@ -1687,14 +1963,14 @@ function render(){
           <div class="field" style="flex:0 0 62px;"><label>Sev 1</label><span id="t_sevcell1" style="display:block;">${severityFieldHTML(1,0,'')}</span></div>
           <div class="field" style="flex:0 0 132px;"><label>Dmg 2</label><select id="t_dmg2" onchange="onDamageChange(2)">${damageOptions(activeStand.variant,'')}</select></div>
           <div class="field" style="flex:0 0 62px;"><label>Sev 2</label><span id="t_sevcell2" style="display:block;">${severityFieldHTML(2,0,'')}</span></div>
-          <div class="field" style="flex:0 0 auto;"><label>&nbsp;</label><button onclick="addTree()">+ Add Tree</button></div>
+          <div class="field" style="flex:0 0 auto;"><label>&nbsp;</label><button onclick="addTree()" ${standReady?'':'disabled aria-disabled="true" title="Save Stand Info first"'}>+ Add Tree</button></div>
         </div>
       </div>
       <div class="card">
         <div class="section-title">Trees Entered — Plot ${activePlot.plot_id}<span class="count-badge">${plotTrees.length} tree${plotTrees.length===1?'':'s'}</span></div>
         ${plotTrees.length?`
         <table>
-          <tr><th>Tree #</th><th>Species</th><th>Status</th><th>DBH</th><th>Ht</th><th>CR</th><th>Count</th><th>Age</th><th>Dmg 1</th><th>Dmg 2</th><th>TPA</th><th></th></tr>
+          <tr><th>Tree #</th><th>Species</th><th>Status</th><th>DBH</th><th>Ht</th><th>CR</th><th>Count</th><th>Age</th><th>Dmg 1</th><th>Dmg 2</th><th></th></tr>
           ${plotTrees.map(t=>{const sp=spList.find(x=>x[0]===t.species);return `
           <tr>
             <td><strong>${t.tree_id}</strong></td>
@@ -1704,7 +1980,6 @@ function render(){
             <td>${t.count||1}</td><td>${t.age||''}</td>
             <td>${t.damage1||''}${t.severity1?'/'+t.severity1:''}</td>
             <td>${t.damage2||''}${t.severity2?'/'+t.severity2:''}</td>
-            <td>${computeTPA(activePlot,t.dbh,t.count).toFixed(2)}</td>
             <td><button class="del-x" onclick="deleteTree('${t.tree_key}')">✕</button></td>
           </tr>`;}).join("")}
         </table>`:`<div class="empty">No trees yet on this plot. Enter one above and click “+ Add Tree.”</div>`}
@@ -1722,7 +1997,7 @@ function render(){
     html+=`
     <div class="card">
       <div class="note-box">
-        <strong>✓ Official species lists loaded</strong> for all 20 variants (FVS species code + common name + PLANTS code, from the FVS Variant Overviews).
+        <strong>✓ Official species lists loaded</strong> for all 20 variants (FVS species code + common name + scientific name + PLANTS code, from the FVS Variant Overviews and supplied species-code index).
         You can add or remove species, or paste-replace a list (one per line: <code>CODE  common name</code>) — edits save permanently and override the built-in list. Use <strong>Reset</strong> to restore the official list.
       </div>
       <div class="row">
@@ -1753,14 +2028,16 @@ WL  western larch"></textarea>
           <div class="sp-row sp-header" role="row">
             <span class="sp-code" role="columnheader">FVS Code</span>
             <span class="sp-name" role="columnheader">Common Name</span>
+            <span class="sp-scientific" role="columnheader">Scientific Name</span>
             <span class="sp-plants" role="columnheader">PLANTS Code</span>
             <span class="sp-actions" aria-hidden="true"></span>
           </div>
-          ${list.map(([c,n,pl])=>`<div class="sp-row" role="row"><span class="sp-code" role="cell">${c}</span><span class="sp-name" role="cell">${n}</span><span class="sp-plants" role="cell" aria-label="PLANTS code">${pl||'—'}</span><button class="del-x" type="button" aria-label="Remove ${c}" onclick="removeSpecies('${c}')">✕</button></div>`).join("") || '<div class="empty">No species — import or add below.</div>'}
+          ${list.map(([c,n,pl,sci])=>`<div class="sp-row" role="row"><span class="sp-code" role="cell">${escapeHTML(c)}</span><span class="sp-name" role="cell">${escapeHTML(n)}</span><span class="sp-scientific" role="cell">${sci?`<em>${escapeHTML(sci)}</em>`:'—'}</span><span class="sp-plants" role="cell" aria-label="PLANTS code">${escapeHTML(pl||'—')}</span><button class="del-x" type="button" aria-label="Remove ${escapeAttr(c)}" data-code="${escapeAttr(c)}" onclick="removeSpecies(this.dataset.code)">✕</button></div>`).join("") || '<div class="empty">No species — import or add below.</div>'}
         </div>
         <div class="row" style="margin-top:10px;">
           <div class="field small"><label>Code</label><input id="sp_new_code" placeholder="e.g. DF"></div>
           <div class="field"><label>Common name</label><input id="sp_new_name" placeholder="Douglas-fir"></div>
+          <div class="field"><label>Scientific name <span class="optional-label">optional</span></label><input id="sp_new_scientific" placeholder="Pseudotsuga menziesii"></div>
           <div class="field small"><label>PLANTS code</label><input id="sp_new_plants" placeholder="PSME"></div>
           <div class="field small" style="flex:0;"><label>&nbsp;</label><button onclick="addSpeciesRow()">+ Add</button></div>
         </div>`;
@@ -1807,9 +2084,11 @@ WL  western larch"></textarea>
           <br><br>Assumptions to verify: <code>TREE_COUNT</code>=raw tally, expansion via <code>BASAL_AREA_FACTOR</code>/<code>INV_PLOT_SIZE</code> · elevation→<code>ELEVFT</code> · HISTORY live=1 dead=6 · tree Age→<code>AGE</code> · <code>PV_CODE</code>=habitat · <code>STANDPLOT_ID</code>=STAND_ID_PLOT_ID.
         </div>
         <div class="section-title">Select Stands to Export</div>
+        ${stands.some(s=>!isStandInfoReady(s.stand_id))?'<div class="note-box warning-note">Selected stands with unsaved Stand Info will require a decision before export. Never-saved stands must be saved first.</div>':''}
         ${stands.map(s=>`<label style="display:flex;gap:8px;align-items:center;font-weight:400;text-transform:none;font-size:14px;margin-bottom:6px;">
           <input type="checkbox" class="exp-check" value="${s.stand_id}" checked> ${s.stand_id}
           <span class="muted">(${plotsForStand(s.stand_id).length} plots, variant ${s.variant||'—'})</span>
+          <span class="stand-save-badge ${standInfoStatusClass(s.stand_id)}">${standInfoStatusLabel(s.stand_id)}</span>
         </label>`).join("")}
         <div class="divider"></div>
         <div class="row">
