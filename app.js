@@ -59,7 +59,7 @@ WS:[["SP","sugar pine","PILA"],["DF","Douglas-fir","PSME"],["WF","white fir","AB
 };
 
 // ---------- State ----------
-const EMPTY_STATE = { schemaVersion:2, stands:{}, plots:{}, trees:{}, speciesLists:{}, verified:{}, activeStand:null, activePlot:null };
+const EMPTY_STATE = { schemaVersion:3, stands:{}, plots:{}, trees:{}, speciesLists:{}, verified:{}, activeStand:null, activePlot:null };
 let state = JSON.parse(JSON.stringify(EMPTY_STATE));
 let ui = { tab:"stand", plotMethod:"variable", speciesVariant:"PN", importMode:false };
 let loaded = false;
@@ -86,9 +86,9 @@ function normalizeState(saved){
   if(typeof saved==='string'){
     try{ saved=JSON.parse(saved); }catch(error){ saved=null; }
   }
-  const source=(saved && typeof saved==='object')?saved:{};
+  const source=(saved && typeof saved==='object')?JSON.parse(JSON.stringify(saved)):{};
   const normalized={
-    schemaVersion:2,
+    schemaVersion:3,
     stands:(source.stands && typeof source.stands==='object')?source.stands:{},
     plots:(source.plots && typeof source.plots==='object')?source.plots:{},
     trees:(source.trees && typeof source.trees==='object')?source.trees:{},
@@ -99,6 +99,16 @@ function normalizeState(saved){
   };
   if(normalized.activeStand && !normalized.stands[normalized.activeStand]) normalized.activeStand=null;
   if(normalized.activePlot && !normalized.plots[normalized.activePlot]) normalized.activePlot=null;
+  Object.values(normalized.stands).forEach(stand=>{
+    if(!stand || typeof stand!=="object") return;
+    if(stand.ecoregion===undefined || stand.ecoregion===null) stand.ecoregion="";
+    if(stand.pv_code===undefined || stand.pv_code===null) stand.pv_code="";
+    if(stand.pv_ref_code===undefined || stand.pv_ref_code===null) stand.pv_ref_code="";
+    if(stand.variant==='SN'){
+      stand.pv_code="";
+      stand.pv_ref_code="";
+    }
+  });
   Object.values(normalized.plots).forEach(plot=>{
     const maxTree=Object.values(normalized.trees)
       .filter(tree=>tree && tree.plot_key===plot.plot_key)
@@ -112,7 +122,7 @@ function announceSave(status, backend){
 }
 function saveState(){
   const revision=++saveRevision;
-  const snapshot=JSON.parse(JSON.stringify({...state,schemaVersion:2}));
+  const snapshot=JSON.parse(JSON.stringify({...state,schemaVersion:3}));
   announceSave('saving');
   saveChain=saveChain.catch(()=>{}).then(async()=>{
     if(!window.AppStorage) throw new Error('Device storage module did not load.');
@@ -183,6 +193,150 @@ function modalConfirm(title, cb){
 function standList(){ return Object.values(state.stands).sort((a,b)=>a.stand_id.localeCompare(b.stand_id)); }
 function plotsForStand(id){ return Object.values(state.plots).filter(p=>p.stand_id===id).sort((a,b)=>a.plot_id-b.plot_id); }
 function treesForPlot(k){ return Object.values(state.trees).filter(t=>t.plot_key===k).sort((a,b)=>a.tree_id-b.tree_id); }
+function escapeHTML(value){
+  return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
+}
+function escapeAttr(value){ return escapeHTML(value); }
+function treeStandId(tree){
+  if(tree&&tree.stand_id) return tree.stand_id;
+  const plot=tree&&state.plots[tree.plot_key];
+  return plot?plot.stand_id:"";
+}
+function speciesUsageForStand(standId){
+  const usage=new Map();
+  let sequence=0;
+  Object.values(state.trees).forEach(tree=>{
+    sequence++;
+    if(!tree || treeStandId(tree)!==standId) return;
+    const code=String(tree.species||"").trim();
+    if(!code) return;
+    const item=usage.get(code)||{count:0,lastUsed:0};
+    item.count+=1;
+    item.lastUsed=sequence;
+    usage.set(code,item);
+  });
+  return usage;
+}
+function speciesPickerEntries(stand, query){
+  const list=getSpecies(stand&&stand.variant);
+  const byCode=new Map(list.map(item=>[String(item[0]),item]));
+  const usage=speciesUsageForStand(stand?stand.stand_id:"");
+  const terms=String(query||"").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const matches=entry=>{
+    if(!terms.length) return true;
+    const hay=(entry.code+" "+entry.name).toLowerCase();
+    return terms.every(term=>hay.includes(term));
+  };
+  const used=Array.from(usage.entries()).map(([code,info])=>{
+    const row=byCode.get(code);
+    return {code,name:row?String(row[1]||""):"Custom species",count:info.count,lastUsed:info.lastUsed,custom:!row};
+  }).filter(matches).sort((a,b)=>b.count-a.count || b.lastUsed-a.lastUsed || a.code.localeCompare(b.code));
+  const unused=list.filter(row=>!usage.has(String(row[0]))).map(row=>({
+    code:String(row[0]),name:String(row[1]||""),count:0,lastUsed:0,custom:false
+  })).filter(matches);
+  return {used,unused};
+}
+function speciesOptionHTML(entry){
+  const count=entry.count?`<span class="species-use-count">${entry.count} tree${entry.count===1?'':'s'}</span>`:"";
+  const custom=entry.custom?'<span class="species-custom-tag">custom</span>':"";
+  return `<button type="button" class="species-option" role="option" data-code="${escapeAttr(entry.code)}" onclick="chooseTreeSpecies(this.dataset.code)"><span><strong>${escapeHTML(entry.code)}</strong> — ${escapeHTML(entry.name)} ${custom}</span>${count}</button>`;
+}
+function speciesPickerMenuHTML(stand, query){
+  const sections=speciesPickerEntries(stand,query);
+  let html="";
+  if(sections.used.length){
+    html+=`<div class="species-group-label">Used in this stand</div>${sections.used.map(speciesOptionHTML).join("")}`;
+  }
+  if(sections.unused.length){
+    html+=`<div class="species-group-label">${sections.used.length?'All other species':'All species'}</div>${sections.unused.map(speciesOptionHTML).join("")}`;
+  }
+  if(!sections.used.length && !sections.unused.length){
+    html+='<div class="species-no-results">No matching species.</div>';
+  }
+  html+='<div class="species-group-label">Custom entry</div><button type="button" class="species-option species-other-option" role="option" data-code="__OTHER__" onclick="chooseTreeSpecies(this.dataset.code)"><span><strong>Other</strong> — enter a custom FVS code</span></button>';
+  return html;
+}
+function renderTreeSpeciesMenu(query){
+  const menu=document.getElementById('t_species_menu');
+  const input=document.getElementById('t_species_search');
+  const stand=state.stands[state.activeStand];
+  if(!menu||!input||!stand) return;
+  menu.innerHTML=speciesPickerMenuHTML(stand,query);
+  menu.hidden=false;
+  input.setAttribute('aria-expanded','true');
+  input.removeAttribute('aria-activedescendant');
+  menu.querySelectorAll('.species-option').forEach((button,index)=>{ button.id='species-option-'+index; });
+}
+function openTreeSpeciesPicker(){
+  const input=document.getElementById('t_species_search');
+  const hidden=document.getElementById('t_species');
+  if(!input) return;
+  renderTreeSpeciesMenu(hidden&&hidden.value?"":input.value);
+  if(hidden&&hidden.value) input.select();
+}
+function filterTreeSpeciesPicker(){
+  const input=document.getElementById('t_species_search');
+  const hidden=document.getElementById('t_species');
+  const customWrap=document.getElementById('t_species_other_wrap');
+  if(hidden) hidden.value="";
+  if(customWrap) customWrap.style.display='none';
+  renderTreeSpeciesMenu(input?input.value:"");
+}
+function closeTreeSpeciesPicker(){
+  const menu=document.getElementById('t_species_menu');
+  const input=document.getElementById('t_species_search');
+  if(menu) menu.hidden=true;
+  if(input){ input.setAttribute('aria-expanded','false'); input.removeAttribute('aria-activedescendant'); }
+}
+function highlightedSpeciesOption(){ return document.querySelector('#t_species_menu .species-option.is-highlighted'); }
+function moveSpeciesHighlight(step){
+  const menu=document.getElementById('t_species_menu');
+  const input=document.getElementById('t_species_search');
+  if(!menu||menu.hidden){ openTreeSpeciesPicker(); }
+  const buttons=Array.from(document.querySelectorAll('#t_species_menu .species-option'));
+  if(!buttons.length) return;
+  let index=buttons.findIndex(button=>button.classList.contains('is-highlighted'));
+  index=index<0?(step>0?0:buttons.length-1):(index+step+buttons.length)%buttons.length;
+  buttons.forEach(button=>button.classList.remove('is-highlighted'));
+  buttons[index].classList.add('is-highlighted');
+  buttons[index].scrollIntoView({block:'nearest'});
+  if(input) input.setAttribute('aria-activedescendant',buttons[index].id);
+}
+function handleTreeSpeciesKeydown(event){
+  if(event.key==='ArrowDown'){ event.preventDefault(); moveSpeciesHighlight(1); return; }
+  if(event.key==='ArrowUp'){ event.preventDefault(); moveSpeciesHighlight(-1); return; }
+  if(event.key==='Escape'){ event.preventDefault(); closeTreeSpeciesPicker(); return; }
+  if(event.key==='Enter'){
+    const menu=document.getElementById('t_species_menu');
+    if(menu&&!menu.hidden){
+      const option=highlightedSpeciesOption()||menu.querySelector('.species-option');
+      if(option){ event.preventDefault(); chooseTreeSpecies(option.dataset.code); }
+    }
+  }
+}
+function chooseTreeSpecies(code){
+  const stand=state.stands[state.activeStand];
+  const input=document.getElementById('t_species_search');
+  const hidden=document.getElementById('t_species');
+  const wrap=document.getElementById('t_species_other_wrap');
+  if(!hidden||!input) return;
+  hidden.value=code;
+  if(code==='__OTHER__'){
+    input.value='Other — custom FVS code';
+    if(wrap) wrap.style.display='flex';
+    closeTreeSpeciesPicker();
+    window.setTimeout(()=>document.getElementById('t_species_other')?.focus(),0);
+    return;
+  }
+  const row=getSpecies(stand&&stand.variant).find(item=>String(item[0])===String(code));
+  input.value=row?`${row[0]} — ${row[1]}`:`${code} — custom species`;
+  if(wrap) wrap.style.display='none';
+  closeTreeSpeciesPicker();
+}
+document.addEventListener('pointerdown',event=>{
+  const picker=document.getElementById('tree_species_picker');
+  if(picker&&!picker.contains(event.target)) closeTreeSpeciesPicker();
+});
 
 function computeInvPlotSize(radiusFt){
   const r = parseFloat(radiusFt)||0;
@@ -236,29 +390,92 @@ function newStand(){
     state.stands[key]={
       stand_id:key, variant:"", inv_year:new Date().getFullYear(), region:"", forest:"",
       district:"", location:"", crew:"", date:new Date().toISOString().slice(0,10),
-      site_species:"", site_index:"", pv_code:"", pv_ref_code:"", elevation:"",
+      site_species:"", site_index:"", pv_code:"", pv_ref_code:"", ecoregion:"", elevation:"",
       latitude:"", longitude:"", slope:"", aspect:"", state_cd:"", county:"", notes:""
     };
     state.activeStand=key; state.activePlot=null; saveState(); render();
   });
 }
 function selectStand(id){ state.activeStand=id||null; state.activePlot=null; render(); }
+function variantSpecificFieldsHTML(variant, stand){
+  const s=stand||{};
+  if(variant==='SN'){
+    return `<div class="field wide"><label>Ecoregion <span class="optional-label">optional</span></label><input id="f_ecoregion" value="${escapeAttr(s.ecoregion||'')}" placeholder="e.g. ecoregion code or name"></div>`;
+  }
+  return `<div class="field small"><label>PV Code</label><input id="f_pvcode" value="${escapeAttr(s.pv_code||'')}" placeholder="habitat"></div>
+    <div class="field small"><label>PV Ref</label><input id="f_pvref" value="${escapeAttr(s.pv_ref_code||'')}"></div>`;
+}
+function captureVariantSpecificFormValues(variant){
+  const s=state.stands[state.activeStand]; if(!s) return;
+  if(variant==='SN'){
+    const eco=document.getElementById('f_ecoregion');
+    if(eco) s.ecoregion=eco.value.trim();
+  }else{
+    const pv=document.getElementById('f_pvcode');
+    const ref=document.getElementById('f_pvref');
+    if(pv) s.pv_code=pv.value.trim();
+    if(ref) s.pv_ref_code=ref.value.trim();
+  }
+}
+function updateVariantSpecificFields(variant){
+  const wrap=document.getElementById('standVariantFields');
+  const s=state.stands[state.activeStand];
+  if(wrap&&s) wrap.innerHTML=variantSpecificFieldsHTML(variant,s);
+}
+function setStandVariantSelection(nextVariant, source, options){
+  const opts=options||{};
+  const s=state.stands[state.activeStand]; if(!s) return false;
+  const sel=document.getElementById('f_variant');
+  const loc=document.getElementById('f_location');
+  const previous=String(s.variant||'');
+  const next=String(nextVariant||'');
+  captureVariantSpecificFormValues(previous);
+  const changed=previous!==next;
+  if(changed && next==='SN'){
+    s.pv_code='';
+    s.pv_ref_code='';
+  }
+  s.variant=next;
+  if(sel) sel.value=next;
+  if(changed) s.location='';
+  else if(loc) s.location=loc.value;
+  if(loc) loc.innerHTML=locationOptions(next,changed?'':s.location);
+  updateVariantSpecificFields(next);
+  updateVariantMap();
+  if(opts.save!==false) saveState();
+  if(!opts.silent && changed && next){
+    const prefix=source==='map'?'Map selection':'Variant';
+    toast(prefix+': '+next+' — '+variantName(next));
+  }
+  return changed;
+}
+function onStandVariantChange(){
+  const sel=document.getElementById('f_variant');
+  if(sel) setStandVariantSelection(sel.value,'manual');
+}
 function saveStandForm(){
   const s=state.stands[state.activeStand]; if(!s) return;
   const g=id=>document.getElementById(id);
-  if(!g('f_variant').value.trim()){ toast("⚠ Select an FVS Variant to save the stand"); return; }
+  const variant=g('f_variant').value.trim();
+  if(!variant){ toast("⚠ Select an FVS Variant to save the stand"); return; }
   if(!g('f_location').value.trim()){ toast("⚠ Select a Location to save the stand"); return; }
   const bafVal=g('f_baf').value.trim();
   if(bafVal===''||!(parseFloat(bafVal)>0)){ toast("⚠ Enter a Variable BAF to save the stand"); return; }
-  s.variant=g('f_variant').value.trim(); s.inv_year=g('f_invyear').value;
+  s.variant=variant; s.inv_year=g('f_invyear').value;
   s.location=g('f_location').value.trim();
   s.crew=g('f_crew').value.trim(); s.date=g('f_date').value;
-  s.pv_code=g('f_pvcode').value.trim(); s.pv_ref_code=g('f_pvref').value.trim();
-  s.elevation=g('f_elev').value; s.latitude=g('f_lat').value; s.longitude=g('f_lon').value;
+  if(variant==='SN'){
+    s.ecoregion=(g('f_ecoregion')?g('f_ecoregion').value.trim():'');
+    s.pv_code=''; s.pv_ref_code='';
+  }else{
+    s.pv_code=(g('f_pvcode')?g('f_pvcode').value.trim():'');
+    s.pv_ref_code=(g('f_pvref')?g('f_pvref').value.trim():'');
+  }
+  s.elevation=g('f_elev').value; s.latitude=g('f_lat').value.trim(); s.longitude=g('f_lon').value.trim();
   s.slope=g('f_slope').value; s.aspect=g('f_aspect').value;
   s.baf=g('f_baf').value; s.denom=g('f_denom').value; s.brk_dbh=g('f_brkdbh').value;
   s.notes=g('f_notes').value;
-  saveState(); toast("Stand info saved");
+  saveState(); updateVariantMap(); toast("Stand info saved");
 }
 function setDbhMode(m){
   const s=state.stands[state.activeStand]; if(!s) return;
@@ -279,6 +496,49 @@ function deleteStand(id){
     saveState(); render();
   });
 }
+let standCoordinateTimer=null;
+function queueStandCoordinateEvaluation(){
+  window.clearTimeout(standCoordinateTimer);
+  standCoordinateTimer=window.setTimeout(()=>{
+    const activeId=document.activeElement&&document.activeElement.id;
+    if(activeId==='f_lat'||activeId==='f_lon') return;
+    const latEl=document.getElementById('f_lat');
+    const lonEl=document.getElementById('f_lon');
+    if(!latEl||!lonEl) return;
+    const latChanged=latEl.value.trim()!==(latEl.dataset.variantCoordinate||'');
+    const lonChanged=lonEl.value.trim()!==(lonEl.dataset.variantCoordinate||'');
+    if(!latChanged&&!lonChanged) return;
+    processStandCoordinates('manual');
+  },0);
+}
+function processStandCoordinates(source, accuracy){
+  const s=state.stands[state.activeStand];
+  const latEl=document.getElementById('f_lat');
+  const lonEl=document.getElementById('f_lon');
+  if(!s||!latEl||!lonEl) return null;
+  s.latitude=latEl.value.trim();
+  s.longitude=lonEl.value.trim();
+  latEl.dataset.variantCoordinate=s.latitude;
+  lonEl.dataset.variantCoordinate=s.longitude;
+  const lat=Number(s.latitude), lon=Number(s.longitude);
+  const valid=Number.isFinite(lat)&&Number.isFinite(lon)&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180;
+  let detected=null;
+  if(valid){
+    detected=findVariantAtCoordinates(lat,lon);
+    if(detected) setStandVariantSelection(detected,'automatic',{silent:true,save:false});
+  }
+  updateVariantMap();
+  saveState();
+  if(source==='gps'){
+    const acc=Number.isFinite(accuracy)?' (±'+Math.round(accuracy)+' m)':'';
+    if(detected) toast('Location captured'+acc+' · '+detected+' — '+variantName(detected)+' selected');
+    else toast('Location captured'+acc+', but no FVS Variant coverage area was found');
+  }else if(valid){
+    if(detected) toast(detected+' — '+variantName(detected)+' selected from coordinates');
+    else toast('No FVS Variant coverage area was found at these coordinates');
+  }
+  return detected;
+}
 function captureLoc(latId, lonId){
   if(!window.isSecureContext && location.hostname!=="localhost"){
     toast("Location requires the HTTPS-hosted version; manual entry still works");
@@ -293,8 +553,9 @@ function captureLoc(latId, lonId){
     const lat=document.getElementById(latId), lon=document.getElementById(lonId);
     if(lat) lat.value=pos.coords.latitude.toFixed(6);
     if(lon) lon.value=pos.coords.longitude.toFixed(6);
-    const accuracy=Number.isFinite(pos.coords.accuracy)?Math.round(pos.coords.accuracy):null;
-    toast("Location captured"+(accuracy!==null?" (±"+accuracy+" m)":""));
+    const accuracy=Number.isFinite(pos.coords.accuracy)?pos.coords.accuracy:null;
+    if(latId==='f_lat'&&lonId==='f_lon') processStandCoordinates('gps',accuracy);
+    else toast("Location captured"+(accuracy!==null?" (±"+Math.round(accuracy)+" m)":""));
   }, err=>{
     const message=err && err.code===1
       ? "Location not recorded (permission denied); continue manually"
@@ -405,9 +666,11 @@ function resetSpecies(){
 // ============================================================
 function blankRow(headers){ const o={}; headers.forEach(h=>o[h]=""); return o; }
 function standBaseFields(s){
+  const southern=s.variant==='SN';
   return {
     VARIANT:s.variant, INV_YEAR:s.inv_year, LATITUDE:s.latitude, LONGITUDE:s.longitude,
-    LOCATION:s.location, PV_CODE:s.pv_code, PV_REF_CODE:s.pv_ref_code, ELEVFT:s.elevation,
+    LOCATION:s.location, ECOREGION:southern?(s.ecoregion||''):'',
+    PV_CODE:southern?'':(s.pv_code||''), PV_REF_CODE:southern?'':(s.pv_ref_code||''), ELEVFT:s.elevation,
     ASPECT:s.aspect, SLOPE:s.slope
   };
 }
@@ -619,10 +882,12 @@ async function importCSVFiles(files){
   importData({standRows, plotRows, treeRows, metaRows:[]});
 }
 function mkStandFromRow(id,r,m){
-  return { stand_id:id, variant:String(r.VARIANT||'').trim(), inv_year:r.INV_YEAR||'',
+  const variant=String(r.VARIANT||'').trim();
+  return { stand_id:id, variant, inv_year:r.INV_YEAR||'',
     region:'',forest:'',district:'',location:String(r.LOCATION||'').trim(),
     crew:(m&&m.CREW)||'', date:(m&&m.DATE)||'', site_species:'',site_index:'',
-    pv_code:String(r.PV_CODE||'').trim(), pv_ref_code:String(r.PV_REF_CODE||'').trim(),
+    ecoregion:String(r.ECOREGION||'').trim(),
+    pv_code:variant==='SN'?'':String(r.PV_CODE||'').trim(), pv_ref_code:variant==='SN'?'':String(r.PV_REF_CODE||'').trim(),
     elevation:r.ELEVFT||'', latitude:r.LATITUDE||'', longitude:r.LONGITUDE||'',
     slope:r.SLOPE||'', aspect:r.ASPECT||'', state_cd:'',county:'', notes:(m&&m.NOTES)||'',
     baf:r.BASAL_AREA_FACTOR||'', denom:(r.INV_PLOT_SIZE!==undefined?String(r.INV_PLOT_SIZE):''), brk_dbh:(r.BRK_DBH!==undefined?String(r.BRK_DBH):'') };
@@ -647,6 +912,12 @@ function importData(bundle){
   plotRows.forEach(r=>{ const sid=String(r.STAND_ID||'').trim(); const pid=parseInt(r.PLOT_ID);
     if(!sid||isNaN(pid)) return;
     if(!state.stands[sid]){ state.stands[sid]=mkStandFromRow(sid,r,meta[sid]); addedStands++; }
+    else {
+      const stand=state.stands[sid];
+      if(!stand.variant && r.VARIANT) stand.variant=String(r.VARIANT).trim();
+      if(!stand.ecoregion && r.ECOREGION!==undefined && r.ECOREGION!==null) stand.ecoregion=String(r.ECOREGION).trim();
+      if(stand.variant==='SN'){ stand.pv_code=''; stand.pv_ref_code=''; }
+    }
     const pair=sid+'|'+pid;
     if(keyByPair[pair]!==undefined){ skippedPlots++; return; }
     const key=uid("plot");
@@ -741,11 +1012,12 @@ function locationOptions(variant, selected){
   }
   return opts;
 }
-function updateLocationOptions(){
+function updateLocationOptions(selected){
   const vSel=document.getElementById('f_variant');
   const lSel=document.getElementById('f_location');
   if(!vSel||!lSel) return;
-  lSel.innerHTML = locationOptions(vSel.value, "");
+  const keep=selected!==undefined?selected:lSel.value;
+  lSel.innerHTML=locationOptions(vSel.value,keep);
 }
 
 // ============================================================
@@ -1057,6 +1329,61 @@ function reprojectAK(pt){
   const ll=_conusAlbers.inv(pt[0],pt[1]);
   return _akAlbers.fwd(ll[0],ll[1]);
 }
+function pointOnSegment(point,a,b){
+  const [x,y]=point, [x1,y1]=a, [x2,y2]=b;
+  const dx=x2-x1, dy=y2-y1;
+  const lengthSquared=dx*dx+dy*dy;
+  if(lengthSquared<1e-12) return Math.hypot(x-x1,y-y1)<=0.01;
+  const cross=(x-x1)*dy-(y-y1)*dx;
+  const tolerance=0.01*Math.max(1,Math.abs(dx)+Math.abs(dy));
+  if(Math.abs(cross)>tolerance) return false;
+  const dot=(x-x1)*dx+(y-y1)*dy;
+  if(dot<0) return false;
+  return dot<=lengthSquared;
+}
+function pointInRing(point,ring){
+  if(!ring||ring.length<3) return false;
+  const x=point[0], y=point[1];
+  let inside=false;
+  for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+    const a=ring[j], b=ring[i];
+    if(pointOnSegment(point,a,b)) return true;
+    const yi=b[1], yj=a[1], xi=b[0], xj=a[0];
+    if(((yi>y)!==(yj>y)) && x<((xj-xi)*(y-yi))/(yj-yi)+xi) inside=!inside;
+  }
+  return inside;
+}
+function pointInPolygon(point,rings){
+  if(!rings||!rings.length||!pointInRing(point,rings[0])) return false;
+  for(let i=1;i<rings.length;i++) if(pointInRing(point,rings[i])) return false;
+  return true;
+}
+const _variantLookupCache=new Map();
+function findVariantAtCoordinates(latitude,longitude){
+  const lat=Number(latitude), lon=Number(longitude);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)||lat<-90||lat>90||lon<-180||lon>180) return null;
+  const key=lat.toFixed(6)+','+lon.toFixed(6);
+  if(_variantLookupCache.has(key)) return _variantLookupCache.get(key);
+  let point;
+  try{ point=_conusAlbers.fwd(lon,lat); }catch(error){ return null; }
+  const matches=[];
+  for(const feature of (FVS_VARIANT_GEOJSON.features||[])){
+    if(!feature||!feature.geometry) continue;
+    const variant=feature.properties&&feature.properties.FVSVariant;
+    if(!variant) continue;
+    const geometry=feature.geometry;
+    const polygons=geometry.type==='Polygon'?[geometry.coordinates]:(geometry.type==='MultiPolygon'?geometry.coordinates:[]);
+    if(polygons.some(rings=>pointInPolygon(point,rings))){
+      const area=Number(feature.properties&&feature.properties.Shape_Area);
+      matches.push({variant,area:Number.isFinite(area)?area:Number.POSITIVE_INFINITY});
+    }
+  }
+  matches.sort((a,b)=>a.area-b.area || a.variant.localeCompare(b.variant));
+  const result=matches.length?matches[0].variant:null;
+  if(_variantLookupCache.size>120) _variantLookupCache.clear();
+  _variantLookupCache.set(key,result);
+  return result;
+}
 
 let _mapCache=null;
 function computeMapData(){
@@ -1121,16 +1448,29 @@ function mapLayer(dst, proj, sel){
   return base+hi;
 }
 function pickVariant(v){
-  const s=state.stands[state.activeStand]; if(!s) return;
-  const sel=document.getElementById('f_variant');
-  if(sel) sel.value=v;
-  s.variant=v;
-  updateLocationOptions();
-  updateVariantMap();
-  saveState();
-  toast(v+" — "+variantName(v)+" selected");
+  setStandVariantSelection(v,'map');
 }
-function standMapSVG(selected){
+function mapPinSVG(latitude,longitude,md,conusProjector,alaskaProjector,conusBox,alaskaBox){
+  const lat=Number(latitude), lon=Number(longitude);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)||lat<-90||lat>90||lon<-180||lon>180) return '';
+  const detected=findVariantAtCoordinates(lat,lon);
+  const useAlaska=detected==='AK'||(lat>=50&&lon<=-125);
+  let screen,box;
+  try{
+    screen=useAlaska?alaskaProjector(_akAlbers.fwd(lon,lat)):conusProjector(_conusAlbers.fwd(lon,lat));
+    box=useAlaska?alaskaBox:conusBox;
+  }catch(error){ return ''; }
+  if(!screen||!Number.isFinite(screen[0])||!Number.isFinite(screen[1])) return '';
+  if(screen[0]<box.x-8||screen[0]>box.x+box.w+8||screen[1]<box.y-8||screen[1]>box.y+box.h+8) return '';
+  const x=Number(screen[0].toFixed(2)), y=Number(screen[1].toFixed(2));
+  const title='Recorded location: '+lat.toFixed(6)+', '+lon.toFixed(6)+(detected?' · '+detected+' — '+variantName(detected):'');
+  return `<g class="variant-map-pin" transform="translate(${x} ${y})" pointer-events="none">
+    <path d="M0 0 C-2.4 -4.2 -10 -12.1 -10 -19 A10 10 0 1 1 10 -19 C10 -12.1 2.4 -4.2 0 0 Z" fill="#b3261e" stroke="#ffffff" stroke-width="2"></path>
+    <circle cx="0" cy="-19" r="3.5" fill="#ffffff"></circle>
+    <title>${escapeHTML(title)}</title>
+  </g>`;
+}
+function standMapSVG(selected,latitude,longitude){
   const gj=FVS_VARIANT_GEOJSON;
   if(!gj||!gj.features||!gj.features.length){
     return `<div class="note-box">🗺️ <strong>Variant map not loaded.</strong> Open this file in a text editor, find <code>FVS_VARIANT_GEOJSON</code> near the top of the script, and replace the empty <code>{"type":"FeatureCollection","features":[]}</code> with the full contents of your <code>FVSVariant.json</code>. Save and reload.</div>`;
@@ -1142,21 +1482,28 @@ function standMapSVG(selected){
   const pa=projector(md.ab,akBox);
   const conusLayer=mapLayer(md.conus,pc,selected);
   const akLayer=Object.keys(md.ak).length?mapLayer(md.ak,pa,selected):'';
+  const pin=mapPinSVG(latitude,longitude,md,pc,pa,conusBox,akBox);
   const nm=selected?(selected+' — '+variantName(selected)):'— no variant selected —';
   return `
-  <div style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fbfcfb;max-width:640px;margin:0 auto;">
-    <div class="muted" style="margin-bottom:4px;">FVS Variant coverage — <strong style="color:var(--accent-d);">${nm}</strong> <span style="font-weight:400;">· click a region to select</span></div>
-    <svg viewBox="0 0 960 600" style="width:100%;height:auto;display:block;">
+  <div class="variant-map-card">
+    <div class="muted variant-map-caption">FVS Variant coverage — <strong>${escapeHTML(nm)}</strong> <span>· click a region to select manually${pin?' · red pin = recorded coordinates':''}</span></div>
+    <svg viewBox="0 0 960 600" class="variant-map-svg" role="img" aria-label="FVS Variant coverage map${pin?' with recorded-location pin':''}">
       ${conusLayer}
       ${akLayer}
       ${akLayer?`<text x="${akBox.x+4}" y="${akBox.y+akBox.h-2}" font-size="11" fill="#5b6b5b">Alaska (not to scale)</text>`:''}
+      ${pin}
     </svg>
+    ${pin?'<div class="variant-map-note">The pin suggests a variant only. You may select a different Variant and Location above.</div>':''}
   </div>`;
 }
 function updateVariantMap(){
   const v=document.getElementById('f_variant');
   const wrap=document.getElementById('variantMapWrap');
-  if(v&&wrap) wrap.innerHTML=standMapSVG(v.value);
+  const s=state.stands[state.activeStand];
+  if(!v||!wrap||!s) return;
+  const lat=document.getElementById('f_lat');
+  const lon=document.getElementById('f_lon');
+  wrap.innerHTML=standMapSVG(v.value,lat?lat.value:s.latitude,lon?lon.value:s.longitude);
 }
 
 // ============================================================
@@ -1176,7 +1523,8 @@ function damageOptions(variant, sel){
   return `<option value="">—</option>`+damageCodes(variant).map(([c,n])=>`<option value="${c}" ${String(sel)===String(c)?'selected':''}>${c} — ${n}</option>`).join("");
 }
 function crownRatioOptions(sel){
-  return `<option value="">— select —</option>`+CROWN_RATIO_CODES.map(([c,n])=>`<option value="${c}" ${String(sel)===String(c)?'selected':''}>${c} · ${n}</option>`).join("");
+  // Keep the numeric FVS code as the stored/exported value, but show only the percentage range.
+  return `<option value="">— select —</option>`+CROWN_RATIO_CODES.map(([c,n])=>`<option value="${c}" ${String(sel)===String(c)?'selected':''}>${n}</option>`).join("");
 }
 function aspectOptions(sel){
   return `<option value="">— select —</option>`+ASPECT_CODES.map(([c,n])=>`<option value="${c}" ${String(sel)===String(c)?'selected':''}>${n}</option>`).join("");
@@ -1235,7 +1583,7 @@ function render(){
       <div class="section-title">Stand Info — ${s.stand_id}</div>
       <div class="row">
         <div class="field wide"><label>FVS Variant</label>
-          <select id="f_variant" onchange="updateLocationOptions();updateVariantMap()">${variantOptions(s.variant)}</select>
+          <select id="f_variant" onchange="onStandVariantChange()">${variantOptions(s.variant)}</select>
         </div>
         <div class="field small"><label>Inv. Year</label><input id="f_invyear" type="number" value="${s.inv_year}"></div>
         <div class="field"><label>Crew</label><input id="f_crew" value="${s.crew}"></div>
@@ -1245,8 +1593,7 @@ function render(){
         <div class="field wide"><label>Location</label>
           <select id="f_location">${locationOptions(s.variant, s.location)}</select>
         </div>
-        <div class="field small"><label>PV Code</label><input id="f_pvcode" value="${s.pv_code}" placeholder="habitat"></div>
-        <div class="field small"><label>PV Ref</label><input id="f_pvref" value="${s.pv_ref_code}"></div>
+        <div id="standVariantFields" class="variant-fields">${variantSpecificFieldsHTML(s.variant,s)}</div>
       </div>
       <div class="row">
         <div class="field small"><label>Variable BAF (ft²/ac)</label><input id="f_baf" type="number" value="${s.baf||''}" placeholder="e.g. 20"></div>
@@ -1265,14 +1612,14 @@ function render(){
         <div class="field small"><label>Elev (ft)</label><input id="f_elev" type="number" value="${s.elevation}"></div>
         <div class="field small"><label>Slope (%)</label><input id="f_slope" type="number" value="${s.slope}"></div>
         <div class="field"><label>Aspect</label><select id="f_aspect">${aspectOptions(s.aspect)}</select></div>
-        <div class="field small"><label>Latitude</label><input id="f_lat" inputmode="decimal" autocomplete="off" value="${s.latitude}"></div>
-        <div class="field small"><label>Longitude</label><input id="f_lon" inputmode="decimal" autocomplete="off" value="${s.longitude}"></div>
+        <div class="field small"><label>Latitude</label><input id="f_lat" inputmode="decimal" autocomplete="off" value="${escapeAttr(s.latitude)}" data-variant-coordinate="${escapeAttr(String(s.latitude||'').trim())}" onblur="queueStandCoordinateEvaluation()"></div>
+        <div class="field small"><label>Longitude</label><input id="f_lon" inputmode="decimal" autocomplete="off" value="${escapeAttr(s.longitude)}" data-variant-coordinate="${escapeAttr(String(s.longitude||'').trim())}" onblur="queueStandCoordinateEvaluation()"></div>
         <div class="field small" style="flex:0;"><label>&nbsp;</label><button class="secondary" onclick="captureLoc('f_lat','f_lon')">📍 Loc</button></div>
       </div>
       <div class="row"><div class="field wide"><label>Notes</label><textarea id="f_notes" rows="2">${s.notes}</textarea></div></div>
       <div class="divider"></div>
       <button onclick="saveStandForm()">Save Stand Info</button>
-      <div id="variantMapWrap" style="margin-top:16px;">${standMapSVG(s.variant)}</div>
+      <div id="variantMapWrap" style="margin-top:16px;">${standMapSVG(s.variant,s.latitude,s.longitude)}</div>
     </div>`;
   }
 
@@ -1311,22 +1658,21 @@ function render(){
     }
 
     if(activePlot){
-      const spOptions = spList.length
-        ? `<option value="" selected>— Select Species… —</option>`+spList.map(([c,n,pl])=>`<option value="${c}">${c} — ${n}${pl?' — '+pl:''}</option>`).join("")+`<option value="__OTHER__">Other / custom…</option>`
-        : `<option value="" selected>— Select Species… —</option><option value="__OTHER__">Other / custom…</option>`;
       const plotTrees=treesForPlot(activePlot.plot_key);
       const nextNum=(activePlot.treeCounter||0)+1;
       html+=`
-      <div class="card">
+      <div class="card tree-entry-card">
         <div class="section-title">Add Tree — Plot ${activePlot.plot_id}<span class="next-badge">Next: Tree #${nextNum}</span>
           <span class="muted"> · ${activeStand.variant?('variant '+activeStand.variant+' · '+spList.length+' species'):'no variant set'} ${activeStand.variant?(isVerified(activeStand.variant)?'<span class="verified">✓ verified</span>':'<span class="unverified">⚠ edited</span>'):''}</span>
         </div>
         ${!activeStand.variant?`<div class="note-box">Set the stand's <strong>FVS Variant</strong> on the Stand Info tab to load its species list.</div>`:''}
         <div class="row tree-entry-row">
-          <div class="field" style="flex:3;min-width:200px;"><label>Species</label>
-            <select id="t_species" onchange="document.getElementById('t_species_other_wrap').style.display=(this.value==='__OTHER__'?'flex':'none')">
-              ${spOptions}
-            </select>
+          <div class="field species-field" style="flex:3;min-width:220px;"><label for="t_species_search">Species</label>
+            <div class="species-picker" id="tree_species_picker">
+              <input id="t_species_search" type="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="t_species_menu" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search code or common name…" onfocus="openTreeSpeciesPicker()" oninput="filterTreeSpeciesPicker()" onkeydown="handleTreeSpeciesKeydown(event)">
+              <input id="t_species" type="hidden" value="">
+              <div id="t_species_menu" class="species-menu" role="listbox" hidden></div>
+            </div>
           </div>
           <div class="field" id="t_species_other_wrap" style="display:none;flex:0 0 90px;"><label>Custom</label><input id="t_species_other" placeholder="code"></div>
           <div class="field" style="flex:0 0 90px;"><label>Status</label>
@@ -1376,7 +1722,7 @@ function render(){
     html+=`
     <div class="card">
       <div class="note-box">
-        <strong>✓ Official species lists loaded</strong> for all 20 variants (alpha code + common name + PLANTS symbol, from the FVS Variant Overviews).
+        <strong>✓ Official species lists loaded</strong> for all 20 variants (FVS species code + common name + PLANTS code, from the FVS Variant Overviews).
         You can add or remove species, or paste-replace a list (one per line: <code>CODE  common name</code>) — edits save permanently and override the built-in list. Use <strong>Reset</strong> to restore the official list.
       </div>
       <div class="row">
@@ -1403,8 +1749,14 @@ WL  western larch"></textarea>
         <div class="row" style="margin-top:8px;"><button onclick="doImport()">Import &amp; replace ${v} list</button></div>`;
     } else {
       html+=`
-        <div>
-          ${list.map(([c,n,pl])=>`<div class="sp-row"><span class="sp-code">${c}</span><span style="flex:1;">${n}</span><span class="sp-plants">${pl||''}</span><button class="del-x" onclick="removeSpecies('${c}')">✕</button></div>`).join("") || '<div class="empty">No species — import or add below.</div>'}
+        <div class="sp-table" role="table" aria-label="Species list for ${v}">
+          <div class="sp-row sp-header" role="row">
+            <span class="sp-code" role="columnheader">FVS Code</span>
+            <span class="sp-name" role="columnheader">Common Name</span>
+            <span class="sp-plants" role="columnheader">PLANTS Code</span>
+            <span class="sp-actions" aria-hidden="true"></span>
+          </div>
+          ${list.map(([c,n,pl])=>`<div class="sp-row" role="row"><span class="sp-code" role="cell">${c}</span><span class="sp-name" role="cell">${n}</span><span class="sp-plants" role="cell" aria-label="PLANTS code">${pl||'—'}</span><button class="del-x" type="button" aria-label="Remove ${c}" onclick="removeSpecies('${c}')">✕</button></div>`).join("") || '<div class="empty">No species — import or add below.</div>'}
         </div>
         <div class="row" style="margin-top:10px;">
           <div class="field small"><label>Code</label><input id="sp_new_code" placeholder="e.g. DF"></div>
