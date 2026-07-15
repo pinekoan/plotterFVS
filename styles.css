@@ -72,6 +72,8 @@
   .tree-entry-row .field{min-width:0;}
   .next-badge{display:inline-block;background:#2f6b3c;color:#fff;border-radius:12px;padding:2px 11px;font-size:13px;font-weight:700;margin-left:6px;}
   .count-badge{display:inline-block;background:#eaf2ea;color:#234f2c;border-radius:12px;padding:2px 11px;font-size:13px;font-weight:700;margin-left:6px;}
+.live-dbh-required{color:var(--danger);font-size:9px;font-weight:800;letter-spacing:0;text-transform:none;}
+input.required-missing{border-color:var(--danger);background:#fff8f7;}
 
 /* PWA and mobile shell */
 html{min-height:100%;background:var(--bg);-webkit-text-size-adjust:100%;}
@@ -261,6 +263,8 @@ input[type="checkbox"],input[type="radio"]{accent-color:var(--accent);}
 .variant-boundary{shape-rendering:geometricPrecision;stroke-linecap:round;stroke-linejoin:round;}
 .secondary-damage-field[hidden]{display:none!important;}
 .seedling-tree-icon{display:inline-block;margin-left:4px;font-size:1.05em;line-height:1;vertical-align:-.08em;cursor:help;}
+.review-stand-summary{line-height:1.55;}
+.review-stand-summary strong{color:var(--ink);font-weight:800;}
 
 @media (max-width:1080px){
   .sampling-combined-row{grid-template-columns:1fr;gap:12px;}

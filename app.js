@@ -453,6 +453,37 @@ function formatDbhBreakInput(input){
   input.value=formatDbhBreakValue(input.value);
   captureStandFormDraft();
 }
+function formatTreeDbhValue(value){
+  const raw=String(value??"").trim();
+  if(raw==="") return "";
+  const numeric=Number(raw);
+  return Number.isFinite(numeric)?numeric.toFixed(1):raw;
+}
+function formatSamplingSummaryValue(value,{absolute=false}={}){
+  const raw=String(value??"").trim();
+  if(raw==="") return "—";
+  const numeric=Number(raw);
+  if(!Number.isFinite(numeric)) return raw;
+  return formatNumber(absolute?Math.abs(numeric):numeric);
+}
+function ordinalDenominator(value){
+  const text=formatSamplingSummaryValue(value,{absolute:true});
+  const numeric=Number(text);
+  if(!Number.isInteger(numeric)) return text;
+  const mod100=Math.abs(numeric)%100;
+  const mod10=Math.abs(numeric)%10;
+  const suffix=(mod100>=11&&mod100<=13)?'th':(mod10===1?'st':mod10===2?'nd':mod10===3?'rd':'th');
+  return text+suffix;
+}
+function tallyTreesReviewSummary(stand){
+  if(stand&&stand.tally_method==='fixed'){
+    return `Fixed Plot, 1/${escapeHTML(ordinalDenominator(stand.baf_fixed))} acre`;
+  }
+  return `Variable: ${escapeHTML(formatSamplingSummaryValue(stand&&stand.baf_variable))} BAF`;
+}
+function regenPlotReviewSummary(stand){
+  return `Fixed Plot, 1/${escapeHTML(ordinalDenominator(stand&&stand.denom))} acre`;
+}
 function isSeedlingSaplingTree(tree, stand){
   const dbhText=String(tree&&tree.dbh!==undefined?tree.dbh:'').trim();
   const breakText=String(stand&&stand.brk_dbh!==undefined?stand.brk_dbh:'').trim();
@@ -1009,6 +1040,29 @@ function deletePlot(k){
 }
 
 // ---------- Tree actions ----------
+function updateAddTreeDbhRequirement(){
+  const status=document.getElementById('t_status');
+  const dbh=document.getElementById('t_dbh');
+  const addButton=document.getElementById('t_add_button');
+  const requirement=document.getElementById('t_dbh_required');
+  if(!status||!dbh||!addButton) return;
+
+  const requiresDbh=status.value==='live';
+  const missingDbh=requiresDbh && String(dbh.value??'').trim()==='';
+  const standReady=addButton.dataset.standReady==='true';
+
+  dbh.required=requiresDbh;
+  dbh.setAttribute('aria-required',requiresDbh?'true':'false');
+  dbh.classList.toggle('required-missing',missingDbh);
+  if(requirement) requirement.hidden=!requiresDbh;
+
+  addButton.disabled=!standReady||missingDbh;
+  addButton.setAttribute('aria-disabled',addButton.disabled?'true':'false');
+  if(!standReady) addButton.title='Save Stand Info first';
+  else if(missingDbh) addButton.title='Enter a DBH value for a Live tree';
+  else addButton.removeAttribute('title');
+}
+
 function addTree(){
   const plot=state.plots[state.activePlot]; if(!plot){ toast("Select a plot first"); return; }
   if(!isStandInfoReady(plot.stand_id)){ toast("Save Stand Info before adding a tree"); return; }
@@ -1016,17 +1070,25 @@ function addTree(){
   let species=g('t_species').value;
   if(species==="__OTHER__"){ species=(g('t_species_other').value||"UNK").trim().toUpperCase(); }
   if(!species){ toast("Pick a species"); return; }
-  if(!g('t_status').value){ toast("Select Status (Live or Dead)"); return; }
+  const status=g('t_status').value;
+  if(!status){ toast("Select Status (Live or Dead)"); return; }
+  const dbhInput=g('t_dbh');
+  if(status==='live' && String(dbhInput.value??'').trim()===''){
+    toast("Enter a DBH value for a Live tree");
+    dbhInput.focus();
+    updateAddTreeDbhRequirement();
+    return;
+  }
   plot.treeCounter=(plot.treeCounter||0)+1;
   const key=uid("tree");
   const st=state.stands[plot.stand_id];
-  let dbhVal=g('t_dbh').value;
+  let dbhVal=dbhInput.value;
   if(dbhVal!==''){ let n=parseFloat(dbhVal); if(isNaN(n)) n=0; if(st&&st.dbh_mode==='idbh') n=n/10; if(n<0) n=0; dbhVal=String(n); }
   const damage1=g('t_dmg1').value;
   const hasPrimaryDamage=!!damage1;
   state.trees[key]={
     tree_key:key, plot_key:plot.plot_key, stand_id:plot.stand_id, tree_id:plot.treeCounter,
-    count:g('t_count').value||"1", species, status:g('t_status').value,
+    count:g('t_count').value||"1", species, status,
     dbh:dbhVal, ht:g('t_ht').value, crown_ratio:g('t_cr').value, age:g('t_age').value,
     damage1, severity1:(g('t_sev1')?g('t_sev1').value:""),
     damage2:(hasPrimaryDamage&&g('t_dmg2')?g('t_dmg2').value:""),
@@ -2076,10 +2138,10 @@ function mapLayer(dst, proj, sel){
     const region=`class="variant-region" d="${d}" fill-rule="evenodd" style="cursor:pointer;" onclick="pickVariant('${variant}')"`;
     if(variant===sel){
       selectedFill+=`<path ${region} fill="var(--accent)" fill-opacity="0.84">${title}</path>`;
-      selectedOutline+=`<path class="variant-boundary selected" d="${d}" fill="none" stroke="#000000" stroke-width="2" vector-effect="non-scaling-stroke" pointer-events="none"></path>`;
+      selectedOutline+=`<path class="variant-boundary selected" d="${d}" fill="none" stroke="#4b504d" stroke-width="1.75" vector-effect="non-scaling-stroke" pointer-events="none"></path>`;
     }else{
       baseFills+=`<path ${region} fill="#e5ede5">${title}</path>`;
-      baseOutlines+=`<path class="variant-boundary" d="${d}" fill="none" stroke="#000000" stroke-width="1.5" vector-effect="non-scaling-stroke" pointer-events="none"></path>`;
+      baseOutlines+=`<path class="variant-boundary" d="${d}" fill="none" stroke="#4b504d" stroke-width="1.25" vector-effect="non-scaling-stroke" pointer-events="none"></path>`;
     }
   }
   return {fills:baseFills+selectedFill,outlines:baseOutlines+selectedOutline};
@@ -2137,7 +2199,7 @@ function standMapSVG(selected,latitude,longitude){
   return `
   <div class="variant-map-card">
     <div class="muted variant-map-caption">FVS Variant coverage — <strong>${escapeHTML(nm)}</strong> <span>· click a region to select manually${pin?' · red pin = recorded coordinates':''}</span></div>
-    <svg viewBox="0 0 960 600" class="variant-map-svg" role="img" aria-label="Dissolved FVS Variant coverage map with faint gray state boundaries beneath thin black FVS Variant boundaries and floating Alaska${pin?' and recorded-location pin':''}">
+    <svg viewBox="0 0 960 600" class="variant-map-svg" role="img" aria-label="Dissolved FVS Variant coverage map with faint gray state boundaries beneath thin dark-gray FVS Variant boundaries and floating Alaska${pin?' and recorded-location pin':''}">
       <defs>
         <clipPath id="variantMapConusClip"><rect x="${conusBox.x}" y="${conusBox.y}" width="${conusBox.w}" height="${conusBox.h}"></rect></clipPath>
       </defs>
@@ -2274,7 +2336,7 @@ function render(){
         <h2 class="sampling-design-heading" id="samplingDesignHeading">Sampling Design</h2>
         <div class="sampling-combined-row">
           <section class="sampling-panel tree-tally-section" aria-labelledby="treeTallyHeading">
-            <div class="sampling-heading" id="treeTallyHeading">Measure tally trees using:</div>
+            <div class="sampling-heading" id="treeTallyHeading">Tally Trees:</div>
             <div class="row sampling-fields-row">
               <div class="field tally-method-field">
                 <label>Tree tally method</label>
@@ -2298,9 +2360,9 @@ function render(){
           </section>
           <div class="sampling-section-divider" aria-hidden="true"></div>
           <section class="sampling-panel seedling-sampling-section" aria-labelledby="seedlingHeading">
-            <div class="sampling-heading seedling-heading" id="seedlingHeading">Nested seedling/sapling plot:</div>
+            <div class="sampling-heading seedling-heading" id="seedlingHeading">Regen Plot:</div>
             <div class="row sampling-fields-row seedling-sampling-row">
-              <div class="field seedling-fixed-field"><label>Fixed Plot (1/N Acre)</label><input id="f_denom" type="number" value="${s.denom||'100'}" step="1" oninput="updateStandRadiusHint()"></div>
+              <div class="field seedling-fixed-field" title="Seedlings/Saplings with DBH less than Break DBH are measured in this plot"><label for="f_denom" title="Seedlings/Saplings with DBH less than Break DBH are measured in this plot">Fixed Plot (1/N Acre)</label><input id="f_denom" type="number" value="${s.denom||'100'}" step="1" oninput="updateStandRadiusHint()" title="Seedlings/Saplings with DBH less than Break DBH are measured in this plot" aria-label="Regen fixed plot size. Seedlings/Saplings with DBH less than Break DBH are measured in this plot"></div>
               <div class="field seedling-radius-field"><label>Equivalent Radius</label><span id="f_radius_hint" class="muted radius-readout">1/${s.denom||'100'} acre = ${fractionToRadius(s.denom||'100').toFixed(2)} ft radius</span></div>
             </div>
           </section>
@@ -2387,10 +2449,10 @@ function render(){
             <select id="t_species" data-current-value="" onchange="onSpeciesDropdownChange('tree',this)" ${activeStand.variant?'':'disabled'}>${speciesDropdownOptions(activeStand,'','tree')}</select>
           </div>
           <div class="field" id="t_species_other_wrap" style="display:none;flex:0 0 90px;"><label>Custom</label><input id="t_species_other" placeholder="code"></div>
-          <div class="field" style="flex:0 0 90px;"><label>Status</label>
-            <select id="t_status"><option value="" selected>— Select —</option><option value="live">Live</option><option value="dead">Dead</option></select>
+          <div class="field" style="flex:0 0 90px;"><label for="t_status">Status</label>
+            <select id="t_status" onchange="updateAddTreeDbhRequirement()"><option value="" selected>— Select —</option><option value="live">Live</option><option value="dead">Dead</option></select>
           </div>
-          <div class="field" style="flex:0 0 74px;"><label>${activeStand.dbh_mode==='idbh'?'IDBH':'DBH'}</label><input id="t_dbh" type="number" min="0" ${activeStand.dbh_mode==='idbh'?`step="1" oninput="this.value=this.value.replace(/[^0-9]/g,'')"`:`step="0.1"`}></div>
+          <div class="field" style="flex:0 0 112px;"><label for="t_dbh">${activeStand.dbh_mode==='idbh'?'IDBH':'DBH'}<span id="t_dbh_required" class="live-dbh-required" hidden> · required for Live</span></label><input id="t_dbh" type="number" min="0" aria-required="false" ${activeStand.dbh_mode==='idbh'?`step="1" oninput="this.value=this.value.replace(/[^0-9]/g,'');updateAddTreeDbhRequirement()"`:`step="0.1" oninput="updateAddTreeDbhRequirement()"`}></div>
           <div class="field" style="flex:0 0 74px;"><label>Height</label><input id="t_ht" type="number" step="1"></div>
           <div class="field" style="flex:0 0 100px;"><label>Crown Ratio</label><select id="t_cr">${crownRatioOptions('')}</select></div>
           <div class="field" style="flex:0 0 60px;"><label>Count</label><input id="t_count" type="number" value="1" step="1"></div>
@@ -2399,7 +2461,7 @@ function render(){
           <div class="field" style="flex:0 0 62px;"><label>Sev 1</label><span id="t_sevcell1" style="display:block;">${severityFieldHTML(1,0,'')}</span></div>
           <div class="field secondary-damage-field" id="t_dmg2_field" style="flex:0 0 132px;" hidden><label>Dmg 2</label><select id="t_dmg2" onchange="onDamageChange(2)">${damageOptions(activeStand.variant,'')}</select></div>
           <div class="field secondary-damage-field" id="t_sev2_field" style="flex:0 0 62px;" hidden><label>Sev 2</label><span id="t_sevcell2" style="display:block;">${severityFieldHTML(2,0,'')}</span></div>
-          <div class="field" style="flex:0 0 auto;"><label>&nbsp;</label><button onclick="addTree()" ${standReady?'':'disabled aria-disabled="true" title="Save Stand Info first"'}>+ Add Tree</button></div>
+          <div class="field" style="flex:0 0 auto;"><label>&nbsp;</label><button id="t_add_button" data-stand-ready="${standReady?'true':'false'}" onclick="addTree()" ${standReady?'aria-disabled="false"':'disabled aria-disabled="true" title="Save Stand Info first"'}>+ Add Tree</button></div>
         </div>
       </div>
       <div class="card">
@@ -2412,7 +2474,7 @@ function render(){
             <td><strong>${t.tree_id}</strong>${seedlingSaplingIcon(t,activeStand)}</td>
             <td>${t.species}${sp?' — '+sp[1]:''}</td>
             <td>${t.status}</td>
-            <td>${t.dbh}</td><td>${t.ht}</td><td>${t.crown_ratio||''}</td>
+            <td>${escapeHTML(formatTreeDbhValue(t.dbh))}</td><td>${t.ht}</td><td>${t.crown_ratio||''}</td>
             <td>${t.count||1}</td><td>${t.age||''}</td>
             <td>${t.damage1||''}${t.severity1?'/'+t.severity1:''}</td>
             <td>${t.damage2||''}${t.severity2?'/'+t.severity2:''}</td>
@@ -2494,14 +2556,14 @@ WL  western larch"></textarea>
       </div>`;
       stands.forEach(s=>{
         const plots=plotsForStand(s.stand_id);
-        html+=`<div class="card"><div class="section-title">${s.stand_id} <span class="muted">(${s.variant||'no variant'}, ${plots.length} plots)</span></div>`;
+        html+=`<div class="card"><div class="section-title">${escapeHTML(s.stand_id)} <span class="muted review-stand-summary">(${escapeHTML(s.variant||'no variant')}, ${plots.length} plots, <strong>Tally Trees:</strong> ${tallyTreesReviewSummary(s)}, <strong>Break DBH:</strong> ${escapeHTML(formatDbhBreakValue(s.brk_dbh))}, <strong>Regen Plot:</strong> ${regenPlotReviewSummary(s)})</span></div>`;
         if(!plots.length) html+=`<div class="empty">No plots yet.</div>`;
         plots.forEach(p=>{
           const trees=treesForPlot(p.plot_key);
           html+=`<div class="plotcard"><strong>Plot ${p.plot_id}</strong> <span class="muted">${trees.length} trees</span>`;
           if(trees.length){
             html+=`<table><tr><th>#</th><th>Sp</th><th>Status</th><th>DBH</th><th>Ht</th><th>CR%</th><th>Count</th><th>Age</th></tr>
-              ${trees.map(t=>`<tr><td>${t.tree_id}${seedlingSaplingIcon(t,s)}</td><td>${t.species}</td><td>${t.status}</td><td>${t.dbh}</td><td>${t.ht}</td><td>${t.crown_ratio}</td><td>${t.count||1}</td><td>${t.age||''}</td></tr>`).join("")}</table>`;
+              ${trees.map(t=>`<tr><td>${t.tree_id}${seedlingSaplingIcon(t,s)}</td><td>${t.species}</td><td>${t.status}</td><td>${escapeHTML(formatTreeDbhValue(t.dbh))}</td><td>${t.ht}</td><td>${t.crown_ratio}</td><td>${t.count||1}</td><td>${t.age||''}</td></tr>`).join("")}</table>`;
           }
           html+=`</div>`;
         });
