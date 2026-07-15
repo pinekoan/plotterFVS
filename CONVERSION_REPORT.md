@@ -1,120 +1,163 @@
-# plOtter FVS PWA conversion and revision report
+# plOtter FVS PWA revision and validation report
+
+## Build identification
+
+- Application version: **1.5.0**
+- Data schema version: **5**
+- Service-worker cache: **`plotter-fvs-pwa-v1.5.0`**
+- Build date shown in the application: **2026-07-15**
 
 ## Source assessment
 
-The original Windows files did not contain the inventory logic:
+The original Windows files did not contain the inventory business logic:
 
-- `Launch_plOtterFVS.vbs` located the HTML file and opened it in the default Windows browser.
-- `debug_plOtterFVS.cmd` checked that the HTML file existed and launched it.
-- `plOtterFVS.html` contained the actual HTML, CSS, JavaScript, FVS lookup data, location request, local storage, and export/import logic.
+- `Launch_plOtterFVS.vbs` located and opened the HTML file.
+- `debug_plOtterFVS.cmd` checked for and launched the HTML file.
+- `plOtterFVS.html` contained the forms, FVS lookup data, storage, location request, and export/import behavior.
 
-The mobile conversion therefore retains the browser-based inventory workflow and replaces the Windows launch mechanism and browser-hosting assumptions.
+The browser/PWA conversion therefore preserves the web-based workflow while replacing Windows launch assumptions, online library dependencies, and desktop-only delivery behavior.
 
-## Original conversion mapping
-
-| Original component | PWA replacement |
-|---|---|
-| `.vbs` and `.cmd` launchers | HTTPS URL and optional home-screen installation |
-| Single HTML file | `index.html`, `styles.css`, and `app.js` |
-| Browser `localStorage` | IndexedDB with a localStorage fallback |
-| Online SheetJS CDN | Local `fvs-xlsx.js` plus bundled JSZip |
-| Direct desktop downloads | Mobile share sheet where supported; download/ZIP fallback |
-| Local `file://` execution | Static HTTPS hosting and service-worker cache |
-| Optional one-time GPS | Secure-context `getCurrentPosition()` request; manual entry remains available |
-
-## Revision 1.4.0 implementation
+## Revision 1.5.0 implementation
 
 | Requested behavior | Implementation |
 |---|---|
-| Require Save Stand Info before additions | New stands start never-saved; saved stands become dirty after any Stand Info edit; add-plot and add-tree controls and functions require a clean saved state |
-| Preserve existing data while dirty | Existing plots and trees remain visible/selectable, and Stand Info drafts persist across tabs |
-| Preserve upgraded/imported workflows | Revision 1.3.0-and-earlier stands and imported stands receive clean saved snapshots during normalization/import |
-| Protect exports from unsaved Stand Info | Never-saved stands block export; dirty saved stands offer Return to Stand Info or Export Last Saved Values using the saved snapshot |
-| Remove TPA from Trees Entered | TPA heading, cells, and display calculation were removed from the tree list; FVS export schemas were not changed |
-| Add scientific names | 795 built-in variant/species rows receive variant-specific scientific names; Species Lists adds an italic Scientific Name column between Common Name and PLANTS Code |
-| Support custom scientific names | Custom-species records normalize to four fields and the form accepts an optional Scientific Name; old three-field records migrate with a blank name |
-| Retain prior searchable species behavior | Search by FVS code/common name and per-stand count/recency promotion remain unchanged; the tree selector still omits scientific and PLANTS names |
-| Retain GPS and map behavior | One-time location pin and initial variant suggestion remain; manual variant and Location override remains unrestricted; Reset clears coordinates and the pin without altering those manual selections |
-| Retain Southern Ecoregion behavior | Optional Ecoregion replaces PV controls for `SN` and propagates to stand and plot exports |
-| Preserve FVS output compatibility | Existing column names/order, species codes, crown-ratio numeric values, and reference export content remain unchanged |
+| Dissolve map boundaries within each FVS Variant | The 255 detailed source features remain available for coordinate lookup; displayed geometry is pre-dissolved into one GeoJSON feature per variant represented in the source map |
+| Overlay faint state boundaries | User-supplied state GeoJSON was validated, projected, simplified, embedded, and rendered as noninteractive, unfilled outlines above variant fills |
+| Preserve manual map choices | Coordinate lookup remains a suggestion; any Variant and then any valid Location can be selected manually, while the pin remains at the recorded coordinate |
+| Add Reset beside Loc | Reset clears Latitude, Longitude, and pin without changing Variant or Location |
+| Separate tree and seedling sampling | Stand Info now has a tree-tally section and a visibly divided Seedling/Sapling section |
+| Add Variable BAF / Fixed Plot choice | A two-option control defaults to Variable BAF and changes the active field label and radius display |
+| Remember method-specific entries | Each stand stores separate `variable_baf` and `tree_fixed_denom` values and restores the appropriate value on method changes |
+| Encode tree Fixed Plot in FVS output | Fixed Plot exports `-abs(denominator)` to `BASAL_AREA_FACTOR`; Variable BAF exports its normal value |
+| Retain seedling plot export | Seedling/Sapling denominator remains independent and exports to `INV_PLOT_SIZE` |
+| Require Location | Save Stand Info validates a nonblank Location, focuses the field on failure, and leaves the stand unsaved |
+| Put recent Locations first | Saved Location values are tracked by Variant, deduplicated, filtered to valid current-Variant codes, and shown most-recent first |
+| Add Site Species | Optional native species dropdown exports the FVS code to StandInit `SITE_SPECIES`; import restores it |
+| Add Site Index | Optional integer field exports to StandInit `SITE_INDEX`; import restores it |
+| Avoid automatic mobile keyboard | Tree Species and Site Species are native dropdowns by default; selecting Search opens a separate picker without focusing its text field |
+| Preserve species ranking | Used-in-stand species remain grouped and ordered by count, with recency as tie-breaker; Site Species selection does not alter counts |
+| Add Export references | Three requested USDA/FVS links and the BIA/FIP disclaimer are included in a separate References card |
 
-## Scientific-name source integration
+## Map processing
 
-The supplied `FVS Variants Species Codes Index.docx` was parsed by FVS Variant plus FVS Species Code, with PLANTS Code used as a cross-check.
+### FVS geometry
 
-- All 20 variants supported by plOtterFVS were present.
-- All 795 built-in variant-specific species rows matched.
-- 38 generic rows (other, other hardwood, or other softwood) have no scientific name and display an em dash.
-- The two ORGANON variants present in the source document are not currently supported by plOtterFVS and were not added.
-- Only unmistakable spelling/capitalization errors were corrected; supplied synonyms and variant-specific taxonomy were otherwise retained.
-- Verified correction examples include `Pinus virginiana`, `Liquidambar styraciflua`, `Sequoia sempervirens`, and `Quercus engelmannii`.
-- Variant-specific synonyms were preserved, including `Carya tomentosa` in Central States and `Carya alba` in Northeast.
+The detailed embedded map contains **255** FVS location/forest features. Build-time geometry processing grouped features by `FVSVariant` and applied a geometric union, removing boundaries shared by polygons of the same variant.
 
-Scientific names are reference metadata only; they are not written to `FVS_StandInit`, `FVS_PlotInit`, or `FVS_TreeInit`.
+The display layer contains **19** dissolved variant features. The original source map does not contain geometry tagged `KT`, so Kootenai/Kaniksu/Tally Lake remains selectable from the Variant and Location controls but has no separate rendered coverage polygon. No geometry was invented for the missing source feature.
 
-## Automated browser validation for revision 1.4.0
+The detailed 255-feature layer remains the source for point-in-polygon detection. Known coordinate results remained unchanged:
 
-The application logic and rendered controls were exercised in Chromium at desktop and 390 by 844 CSS-pixel mobile viewports. This is automated browser testing, not physical-device testing.
+| Coordinate sample | Detected variant |
+|---|---|
+| Seattle | PN |
+| Memphis | SN |
+| Denver | CR |
+| Duluth | LS |
+| Anchorage | AK |
+| Miami | SN |
+| New York City | NE |
 
-### New save-state and export behavior
+### State geometry
 
-- Confirmed a newly created stand shows Not saved and blocks both add-plot and add-tree operations at the UI and function levels.
-- Confirmed a successfully saved stand enables both additions.
-- Confirmed editing any saved Stand Info field changes the stand to Unsaved changes and re-enables additions only after another successful save.
-- Confirmed existing plots and trees remain visible while the stand is dirty.
-- Confirmed draft Stand Info values persist when navigating between tabs.
-- Confirmed legacy state migrates to schema version 4 with a clean saved snapshot and does not block existing users.
-- Confirmed never-saved export warnings contain only Return to Stand Info and Cancel, and no export plan is produced.
-- Confirmed dirty-saved warnings contain Return to Stand Info and Export Last Saved Values.
-- Confirmed the saved snapshot, rather than current draft BAF/notes, is used when Export Last Saved Values is selected, while the draft remains intact in current state.
-- Confirmed Return to Stand Info activates the affected stand and Stand Info tab.
-- Confirmed the export checklist shows stand save status.
+`USstates.json` was validated as GeoJSON containing the 48 contiguous states plus Alaska. It contains valid Polygon/MultiPolygon geometries in geographic longitude/latitude coordinates. Hawaii and the District of Columbia are not present in the supplied data and are outside or immaterial to the current map composition.
 
-### Species and tree-list behavior
+The state data was simplified at build time and embedded in projected coordinates. Rendering produces:
 
-- Confirmed the Trees Entered header and rows no longer contain TPA and the former display calculation is absent.
-- Confirmed the Species Lists header order is FVS Code, Common Name, Scientific Name, PLANTS Code.
-- Confirmed scientific names render inside italic elements.
-- Confirmed all 795 built-in rows contain the expected scientific-name field and only the 38 generic entries are blank.
-- Confirmed legacy three-field custom species migrate to a four-field row with blank scientific name.
-- Confirmed a custom scientific name is stored and displayed.
-- Confirmed prior search by code/common name, keyboard selection, custom reuse, per-stand isolation, usage count ordering, and recency tie breaking still pass.
-- Confirmed Crown Ratio labels remain percentage ranges while stored values remain 1 through 9.
+- one combined noninteractive state-outline path for the Lower 48;
+- one combined noninteractive state-outline path for the Alaska inset;
+- no state fill or labels;
+- the recorded-location pin above all map layers.
+
+## Data-model migration
+
+Schema version 5 normalizes earlier stand records as follows:
+
+- A legacy positive `baf` becomes `tally_method: "variable"` and `variable_baf`.
+- A legacy or imported negative `BASAL_AREA_FACTOR` becomes `tally_method: "fixed"` and `tree_fixed_denom`.
+- Existing saved snapshots are normalized using the same rule, preserving correct last-saved export behavior.
+- `site_species` and `site_index` default to blank when absent.
+- `recentLocations` defaults to an empty object and is seeded from clean saved stand snapshots.
+- Existing plots, trees, species lists, scientific names, Southern Ecoregion values, and save-state flags remain intact.
+
+## FVS export behavior
+
+### `FVS_StandInit`
+
+- `BASAL_AREA_FACTOR` receives Variable BAF or negative tree Fixed Plot denominator.
+- `INV_PLOT_SIZE` continues to receive the Seedling/Sapling fixed-plot denominator.
+- `SITE_SPECIES` receives the selected FVS species code.
+- `SITE_INDEX` receives the optional integer value.
+- Southern Ecoregion and blank PV fields retain revision 1.4 behavior.
+
+### `FVS_PlotInit`
+
+- `BASAL_AREA_FACTOR` and `INV_PLOT_SIZE` follow the parent stand.
+- Southern Ecoregion continues to propagate to every plot row.
+- `SITE_SPECIES` and `SITE_INDEX` remain blank, as requested.
+
+### `FVS_TreeInit`
+
+- Schema, species-code mapping, Crown Ratio values, and tree data mapping are unchanged.
+- TPA remains absent from the on-screen tree list and is not an added TreeInit field.
+
+## Automated browser validation
+
+Chromium tests were run at desktop and 390 × 844 CSS-pixel mobile viewports. This is automated browser testing, not physical-device testing.
+
+### Revision 1.5 controls
+
+- Confirmed Location placeholder text and required-save validation.
+- Confirmed recent Location grouping, Variant filtering, deduplication, and order.
+- Confirmed Variable BAF / Fixed Plot switching retains independent values.
+- Confirmed entering `5` or `-5` as a tree Fixed Plot exports `-5`.
+- Confirmed 1/5 acre displays a 52.7-foot radius.
+- Confirmed Seedling/Sapling denominator remains independent and exports to `INV_PLOT_SIZE`.
+- Confirmed Site Species uses the active Variant list and exports its FVS code only to StandInit.
+- Confirmed Site Index rejects noninteger entries when supplied and is optional when blank.
+- Confirmed both species controls begin as native dropdowns, place Search near the top, and do not focus the search field automatically.
+- Confirmed tree-species count/recency ranking across plots and per-stand isolation.
+- Confirmed the displayed map has 19 clickable dissolved variant paths rather than 255 detailed feature paths.
+- Confirmed state outlines render as noninteractive overlays and map clicks remain available.
+- Confirmed map pin, automatic suggestion, unchanged-coordinate behavior, manual Variant/Location override, and Reset.
+- Confirmed References contains all three requested links with separate-window and `noopener noreferrer` handling.
+- Confirmed no duplicate element IDs or uncaught runtime errors in representative views.
 
 ### Prior-feature regression checks
 
-- Confirmed a successful one-time GPS result fills coordinates, creates one pin, and suggests the expected embedded variant.
-- Confirmed location denial remains non-blocking and no continuous watch is used.
-- Confirmed users can override a suggested variant and select one of that variant's Location values while the pin remains.
-- Confirmed Reset clears both Stand Info coordinates and the map pin, leaves the selected Variant and Location unchanged, and marks a previously saved stand dirty when coordinates changed.
-- Confirmed unchanged coordinates do not reapply automatic selection and changed coordinates do.
-- Confirmed known coordinate samples resolve to PN (Seattle), SN (Memphis and Miami), CR (Denver), LS (Duluth), AK (Anchorage), and NE (New York).
-- Confirmed Southern hides PV controls, allows blank Ecoregion, clears PV values, and exports the same Ecoregion to one stand row and all of its plot rows.
-- Confirmed a non-Southern stand exports blank Ecoregion and retains PV values.
-- Confirmed Southern import restores Ecoregion from a plot row when the stand row is blank.
-- Confirmed no uncaught browser runtime errors occurred in the automated scenarios.
+- Save Stand Info gating continues to block plot/tree additions while never-saved or dirty.
+- Existing plots and trees remain visible while dirty.
+- Never-saved export is blocked.
+- Dirty saved export can use the last saved snapshot without discarding the current draft.
+- Southern hides PV fields, accepts optional Ecoregion, and propagates it to all stand/plot rows.
+- Crown Ratio labels retain underlying numeric FVS values.
+- Scientific names and PLANTS codes remain available on the Species Lists tab.
+- The Trees Entered list remains free of the TPA column.
 
-## Reference import/export regression validation
+## Reference import/export regression
 
-The revised application was exercised using the supplied reference exports.
+The supplied reference workbook and CSV files were re-tested against revision 1.5.0:
 
 - Imported `FVS_Export_2026-07-13_095937.xlsx`.
-- Reconstructed 2 stands, 2 plots, and 11 trees.
-- Regenerated all three CSV tables and compared normalized text with the supplied reference CSV files; all three matched.
-- Generated and reopened an Excel workbook containing `FVS_StandInit`, `FVS_PlotInit`, `FVS_TreeInit`, and `FieldMetadata`.
-- Reopened row counts were 2, 2, 11, and 2 respectively.
-- Confirmed imported stands receive clean saved snapshots.
+- Reconstructed **2 stands, 2 plots, and 11 trees**.
+- Regenerated StandInit, PlotInit, and TreeInit CSV text matched all three supplied reference CSV files after line-ending normalization.
+- Generated and reopened an Excel workbook with `FVS_StandInit`, `FVS_PlotInit`, `FVS_TreeInit`, and `FieldMetadata`.
+- Reopened worksheet row counts were **2, 2, 11, and 2**.
+- Imported stands received clean saved snapshots under schema version 5.
 
-## Static and offline package validation
+A separate workbook round trip verified negative Fixed Plot BAF, optional Site Species/Site Index, Southern Ecoregion, and two propagated plot rows.
 
-- JavaScript syntax was checked for the application and service-worker files.
-- The service-worker application shell was checked against every file included in its cache list.
-- Manifest and icon declarations were checked against packaged assets.
-- Runtime libraries are bundled locally; no CDN is required for data entry or export.
-- The schema version is 4, and the cache and visible application versions are 1.4.0.
-- A static-host check returned successful responses with appropriate content types for the HTML, JavaScript, CSS, manifest, service worker, and PNG assets.
-- The service-worker install, activation, old-cache cleanup, cached-asset response, and offline navigation fallback were exercised in an isolated service-worker test harness.
+## Static and offline-package validation
+
+- `app.js` and `service-worker.js` passed JavaScript syntax checks.
+- `manifest.webmanifest` parsed successfully.
+- Every service-worker application-shell path exists in the package.
+- All manifest icon files exist and retain their declared dimensions.
+- Runtime scripts and styles are local; no CDN is required for collection, storage, map display, or export.
+- Application, visible footer, schema, and cache versions are aligned to 1.5.0 / schema 5.
+- Final ZIP contents and CRC values are checked with ZIP integrity testing.
+- A SHA-256 checksum is supplied beside the ZIP.
 
 ## Validation boundary
 
-The revision has not been physically tested on the intended field devices. Before operational deployment, complete the device checklist in `README.md` on at least one representative iPhone/iPad and one Android device. Browser permission presentation, share-sheet destinations, storage retention, installation presentation, and organization-managed device policies can vary.
+The package has not been physically tested on the intended iPhone, iPad, or Android field devices. Before operational deployment, complete the acceptance checklist in `README.md`, particularly Safari/Chrome installation, native dropdown behavior, location permission presentation, share-sheet destinations, offline relaunch, and storage retention under the organization's device policies.
