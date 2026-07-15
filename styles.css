@@ -212,53 +212,66 @@ input[type="checkbox"],input[type="radio"]{accent-color:var(--accent);}
   .choice-dialog-actions button{width:100%;}
 }
 
-/* v1.5 Stand sampling controls */
-.sampling-section{padding:2px 0;}
-.sampling-heading{margin:0 0 9px;font-size:12px;font-weight:800;color:var(--accent-d);letter-spacing:.02em;}
-.sampling-divider{height:0;margin:15px 0 13px;border-top:2px solid #b9c8b9;}
-.tally-method-field{flex:0 0 250px;min-width:250px;}
-.tally-value-field{flex:0 0 190px;min-width:170px;}
-.tally-radius-field{flex:0 0 auto;min-width:190px;}
-.dbh-mode-field{flex:0 0 190px;min-width:180px;}
+/* v1.6.0 sampling layout, site controls, references, and opt-in species search */
+.sampling-combined-row{
+  display:grid;grid-template-columns:minmax(0,1.55fr) 2px minmax(340px,.9fr);gap:16px;
+  align-items:stretch;margin-top:13px;
+}
+.sampling-panel{min-width:0;padding:12px 14px 14px;border:1px solid #e3e9e3;border-radius:10px;background:#fbfcfb;}
+.sampling-heading{margin:0 0 10px;font-size:14px;font-weight:800;color:var(--accent-d);letter-spacing:.01em;}
+.seedling-heading{font-size:14px;}
+.sampling-fields-row{align-items:flex-end;}
+.sampling-section-divider{width:2px;min-height:100%;border-radius:2px;background:linear-gradient(180deg,var(--line),#8fa991 18%,#8fa991 82%,var(--line));}
+.sampling-to-dbh-divider{margin-top:15px;margin-bottom:12px;}
+.tally-method-field{flex:0 1 250px;min-width:220px;}
+.tally-value-field{flex:0 1 200px;min-width:180px;}
+.tally-radius-field{flex:1 1 220px;min-width:205px;}
+.tally-radius-field[hidden]{display:none!important;}
+.dbh-site-row{align-items:flex-end;margin-bottom:10px;}
+.dbh-mode-field{flex:0 1 215px;min-width:195px;}
+.dbh-break-field{flex:0 0 135px;min-width:125px;}
+.site-species-field{flex:1 1 300px;min-width:230px;}
+.site-index-field{flex:0 0 115px;min-width:105px;}
+.seedling-fixed-field{flex:0 1 175px;min-width:160px;}
+.seedling-radius-field{flex:1 1 235px;min-width:210px;}
+.radius-readout{display:inline-flex;align-items:center;min-height:38px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#f7faf7;white-space:nowrap;}
 .tally-method-toggle button{white-space:nowrap;}
-.radius-readout{display:inline-flex;align-items:center;min-height:38px;padding:7px 0;white-space:nowrap;}
-.seedling-section{padding:1px 0 3px;}
-.site-fields-row{margin-top:2px;margin-bottom:10px;}
 
-/* Native species dropdown by default; search opens only on request. */
-.species-search-overlay{z-index:1400;align-items:center;}
-.species-search-dialog{width:min(560px,100%);max-height:min(720px,90vh);display:flex;flex-direction:column;padding:18px;background:#fff;border-radius:14px;box-shadow:0 18px 55px rgba(0,0,0,.3);outline:none;}
-.species-search-dialog h2{margin:0 0 4px;font-size:18px;}
-.species-search-dialog>input[type="search"]{width:100%;min-height:44px;margin:12px 0 8px;font-size:16px;}
-.species-search-results{min-height:150px;max-height:52vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px;padding:5px;background:#fff;}
-.species-search-actions{display:flex;justify-content:flex-end;margin-top:12px;}
-.species-search-actions button{min-width:100px;}
+.references-card{overflow:visible;}
+.references-list{margin:0 0 12px;padding-left:22px;font-size:14px;line-height:1.7;}
+.references-list a{color:var(--accent-d);font-weight:700;text-decoration-thickness:1px;text-underline-offset:2px;}
+.references-list a:hover{text-decoration-thickness:2px;}
+.reference-note{padding:11px 12px;border-left:4px solid var(--accent);border-radius:6px;background:#f1f6f1;color:#344334;font-size:12.5px;line-height:1.5;}
+.reference-note a{color:var(--accent-d);font-weight:800;text-decoration-thickness:1px;text-underline-offset:2px;overflow-wrap:anywhere;}
+.reference-note a:hover{text-decoration-thickness:2px;}
 
-/* Export references */
-.references-card{border-top:3px solid #c8d6c8;}
-.reference-links{margin:4px 0 12px;padding-left:22px;line-height:1.7;}
-.reference-links a{color:var(--accent-d);font-weight:700;text-underline-offset:2px;}
-.reference-note{margin:0;padding-top:11px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.55;color:#3e4d3e;}
+.species-search-overlay{z-index:1400;align-items:flex-start;overflow-y:auto;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:max(16px,env(safe-area-inset-bottom));}
+.species-search-dialog{width:min(560px,100%);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;padding:16px;background:#fff;border-radius:14px;box-shadow:0 18px 55px rgba(0,0,0,.28);}
+.species-search-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.species-search-header h2{margin:0;font-size:18px;}
+.species-search-dialog>input[type="search"]{width:100%;min-height:44px;margin-top:4px;font-size:16px;}
+.species-search-results{margin-top:8px;min-height:90px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px;padding:5px;background:#fff;}
 
-@media (max-width:720px){
-  .sampling-heading{font-size:12.5px;}
-  .tally-method-field,.tally-value-field,.tally-radius-field,.dbh-mode-field{flex:1 1 100%!important;min-width:0!important;}
-  .tally-method-toggle{width:100%;}
-  .radius-readout{min-height:auto;padding:2px 0 5px;white-space:normal;}
-  .sampling-divider{margin:17px 0 14px;}
-  .species-search-overlay{align-items:flex-end;padding:0;}
-  .species-search-dialog{width:100%;max-height:88vh;border-radius:16px 16px 0 0;padding:16px 12px calc(14px + env(safe-area-inset-bottom));}
-  .species-search-results{max-height:55vh;}
-  .species-search-actions button{width:100%;}
+.state-boundary{shape-rendering:geometricPrecision;stroke-linecap:round;stroke-linejoin:round;}
+.variant-boundary{shape-rendering:geometricPrecision;stroke-linecap:round;stroke-linejoin:round;}
+
+@media (max-width:980px){
+  .sampling-combined-row{grid-template-columns:1fr;gap:12px;}
+  .sampling-section-divider{width:100%;height:2px;min-height:2px;background:linear-gradient(90deg,var(--line),#8fa991 18%,#8fa991 82%,var(--line));}
 }
 
-/* Keep the tree-tally method and value readable on narrow phones. */
 @media (max-width:720px){
-  .row>.field.tally-method-field,
-  .row>.field.tally-value-field,
-  .row>.field.tally-radius-field,
-  .row>.field.dbh-mode-field{
-    flex:1 1 100%!important;
-    min-width:100%!important;
-  }
+  .sampling-combined-row{margin-top:12px;gap:10px;}
+  .sampling-panel{padding:11px;}
+  .sampling-heading{font-size:15px;}
+  .tally-method-field,.tally-value-field,.tally-radius-field,.dbh-mode-field,.dbh-break-field,.site-species-field,.site-index-field,.seedling-fixed-field,.seedling-radius-field{flex:1 1 100%!important;min-width:0!important;}
+  .tally-method-toggle{width:100%;}
+  .tally-method-toggle button{font-size:13px;padding-left:7px;padding-right:7px;}
+  .radius-readout{width:100%;min-height:44px;white-space:normal;}
+  .sampling-to-dbh-divider{margin-top:14px;}
+  .dbh-site-row>.field{flex:1 1 100%!important;min-width:0!important;}
+  .species-search-dialog{max-height:calc(100dvh - 20px);padding:12px;border-radius:12px;}
+  .species-search-header button{min-height:38px;}
+  .species-search-results{max-height:58dvh;}
+  .references-list{padding-left:20px;}
 }

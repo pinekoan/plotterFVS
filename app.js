@@ -107,53 +107,11 @@ function standInfoSnapshot(stand){
 function sameStandInfo(left,right){
   return JSON.stringify(standInfoSnapshot(left))===JSON.stringify(standInfoSnapshot(right));
 }
-function normalizeStandRecord(stand){
-  if(!stand || typeof stand!=="object") return stand;
-  const text=(value, fallback="")=>(value===undefined||value===null)?fallback:String(value);
-  stand.ecoregion=text(stand.ecoregion);
-  stand.pv_code=text(stand.pv_code);
-  stand.pv_ref_code=text(stand.pv_ref_code);
-  stand.site_species=text(stand.site_species);
-  stand.site_index=text(stand.site_index);
-  stand.baf=text(stand.baf);
-  const legacyBaf=stand.baf.trim();
-  if(stand.tally_method!=="fixed" && stand.tally_method!=="variable"){
-    const numeric=Number(legacyBaf);
-    stand.tally_method=legacyBaf!=="" && Number.isFinite(numeric) && numeric<0 ? "fixed" : "variable";
-  }
-  if(stand.variable_baf===undefined || stand.variable_baf===null){
-    stand.variable_baf=stand.tally_method==="variable"?legacyBaf:"";
-  }else stand.variable_baf=String(stand.variable_baf);
-  if(stand.tree_fixed_denom===undefined || stand.tree_fixed_denom===null){
-    stand.tree_fixed_denom=stand.tally_method==="fixed"?legacyBaf:"";
-  }else stand.tree_fixed_denom=String(stand.tree_fixed_denom);
-  stand.baf=stand.tally_method==="fixed"?stand.tree_fixed_denom:stand.variable_baf;
-  if(stand.denom===undefined || stand.denom===null || stand.denom==="") stand.denom="100";
-  else stand.denom=String(stand.denom);
-  if(stand.brk_dbh===undefined || stand.brk_dbh===null || stand.brk_dbh==="") stand.brk_dbh="5";
-  else stand.brk_dbh=String(stand.brk_dbh);
-  if(!stand.dbh_mode) stand.dbh_mode="real";
-  if(stand.variant==='SN'){
-    stand.pv_code="";
-    stand.pv_ref_code="";
-  }
-  return stand;
-}
-function normalizeRecentLocations(value){
-  const result={};
-  if(!value || typeof value!=="object") return result;
-  Object.keys(value).forEach(variant=>{
-    const seen=new Set();
-    const rows=Array.isArray(value[variant])?value[variant]:[];
-    result[variant]=rows.map(code=>String(code||"").trim()).filter(code=>code&&!seen.has(code)&&seen.add(code));
-  });
-  return result;
-}
 function normalizeState(saved){
   if(typeof saved==='string'){
     try{ saved=JSON.parse(saved); }catch(error){ saved=null; }
   }
-  const source=(saved && typeof saved==='object')?JSON.parse(JSON.stringify(saved)):{ };
+  const source=(saved && typeof saved==='object')?JSON.parse(JSON.stringify(saved)):{};
   const normalized={
     schemaVersion:APP_SCHEMA_VERSION,
     stands:(source.stands && typeof source.stands==='object')?source.stands:{},
@@ -162,7 +120,7 @@ function normalizeState(saved){
     speciesLists:(source.speciesLists && typeof source.speciesLists==='object')?source.speciesLists:{},
     verified:(source.verified && typeof source.verified==='object')?source.verified:{},
     standInfoStatus:{},
-    recentLocations:normalizeRecentLocations(source.recentLocations),
+    recentLocations:(source.recentLocations && typeof source.recentLocations==='object')?source.recentLocations:{},
     activeStand:source.activeStand||null,
     activePlot:source.activePlot||null
   };
@@ -170,9 +128,40 @@ function normalizeState(saved){
     const rows=normalized.speciesLists[variant];
     normalized.speciesLists[variant]=Array.isArray(rows)?rows.map(row=>normalizeSpeciesRow(row,variant)):[];
   });
+  Object.keys(normalized.recentLocations).forEach(variant=>{
+    const values=Array.isArray(normalized.recentLocations[variant])?normalized.recentLocations[variant]:[];
+    normalized.recentLocations[variant]=Array.from(new Set(values.map(value=>String(value||'').trim()).filter(Boolean))).slice(0,8);
+  });
   if(normalized.activeStand && !normalized.stands[normalized.activeStand]) normalized.activeStand=null;
   if(normalized.activePlot && !normalized.plots[normalized.activePlot]) normalized.activePlot=null;
-  Object.values(normalized.stands).forEach(normalizeStandRecord);
+  Object.values(normalized.stands).forEach(stand=>{
+    if(!stand || typeof stand!=="object") return;
+    if(stand.ecoregion===undefined || stand.ecoregion===null) stand.ecoregion="";
+    if(stand.pv_code===undefined || stand.pv_code===null) stand.pv_code="";
+    if(stand.pv_ref_code===undefined || stand.pv_ref_code===null) stand.pv_ref_code="";
+    if(stand.site_species===undefined || stand.site_species===null) stand.site_species="";
+    if(stand.site_index===undefined || stand.site_index===null) stand.site_index="";
+    if(stand.baf===undefined || stand.baf===null) stand.baf="";
+    const legacyBaf=String(stand.baf||'').trim();
+    const legacyBafNumber=Number(legacyBaf);
+    if(stand.tally_method!=='fixed' && stand.tally_method!=='variable'){
+      stand.tally_method=(legacyBaf!=='' && Number.isFinite(legacyBafNumber) && legacyBafNumber<0)?'fixed':'variable';
+    }
+    if(stand.baf_variable===undefined || stand.baf_variable===null){
+      stand.baf_variable=stand.tally_method==='variable'?legacyBaf:(legacyBafNumber>=0?legacyBaf:'');
+    }
+    if(stand.baf_fixed===undefined || stand.baf_fixed===null){
+      stand.baf_fixed=stand.tally_method==='fixed'?legacyBaf:(legacyBafNumber<0?legacyBaf:'');
+    }
+    stand.baf=stand.tally_method==='fixed'?String(stand.baf_fixed||''):String(stand.baf_variable||'');
+    if(stand.denom===undefined || stand.denom===null || stand.denom==="") stand.denom="100";
+    if(stand.brk_dbh===undefined || stand.brk_dbh===null || stand.brk_dbh==="") stand.brk_dbh="5";
+    if(!stand.dbh_mode) stand.dbh_mode="real";
+    if(stand.variant==='SN'){
+      stand.pv_code="";
+      stand.pv_ref_code="";
+    }
+  });
   const sourceStatus=(source.standInfoStatus && typeof source.standInfoStatus==='object')?source.standInfoStatus:null;
   Object.keys(normalized.stands).forEach(standId=>{
     const stand=normalized.stands[standId];
@@ -181,9 +170,29 @@ function normalizeState(saved){
       const savedFlag=!!prior.saved && prior.snapshot && typeof prior.snapshot==='object';
       let snapshot=null;
       if(savedFlag){
-        const migratedSnapshot=JSON.parse(JSON.stringify(prior.snapshot));
-        normalizeStandRecord(migratedSnapshot);
-        snapshot=standInfoSnapshot(migratedSnapshot);
+        const sourceSnapshot=JSON.parse(JSON.stringify(prior.snapshot));
+        if(sourceSnapshot.ecoregion===undefined||sourceSnapshot.ecoregion===null) sourceSnapshot.ecoregion='';
+        if(sourceSnapshot.pv_code===undefined||sourceSnapshot.pv_code===null) sourceSnapshot.pv_code='';
+        if(sourceSnapshot.pv_ref_code===undefined||sourceSnapshot.pv_ref_code===null) sourceSnapshot.pv_ref_code='';
+        if(sourceSnapshot.site_species===undefined||sourceSnapshot.site_species===null) sourceSnapshot.site_species='';
+        if(sourceSnapshot.site_index===undefined||sourceSnapshot.site_index===null) sourceSnapshot.site_index='';
+        const rawBaf=String(sourceSnapshot.baf||'').trim();
+        const rawBafNumber=Number(rawBaf);
+        if(sourceSnapshot.tally_method!=='fixed'&&sourceSnapshot.tally_method!=='variable'){
+          sourceSnapshot.tally_method=(rawBaf!==''&&Number.isFinite(rawBafNumber)&&rawBafNumber<0)?'fixed':'variable';
+        }
+        if(sourceSnapshot.baf_variable===undefined||sourceSnapshot.baf_variable===null){
+          sourceSnapshot.baf_variable=sourceSnapshot.tally_method==='variable'?rawBaf:(rawBafNumber>=0?rawBaf:'');
+        }
+        if(sourceSnapshot.baf_fixed===undefined||sourceSnapshot.baf_fixed===null){
+          sourceSnapshot.baf_fixed=sourceSnapshot.tally_method==='fixed'?rawBaf:(rawBafNumber<0?rawBaf:'');
+        }
+        sourceSnapshot.baf=sourceSnapshot.tally_method==='fixed'?String(sourceSnapshot.baf_fixed||''):String(sourceSnapshot.baf_variable||'');
+        if(sourceSnapshot.denom===undefined||sourceSnapshot.denom===null||sourceSnapshot.denom==='') sourceSnapshot.denom='100';
+        if(sourceSnapshot.brk_dbh===undefined||sourceSnapshot.brk_dbh===null||sourceSnapshot.brk_dbh==='') sourceSnapshot.brk_dbh='5';
+        if(!sourceSnapshot.dbh_mode) sourceSnapshot.dbh_mode='real';
+        if(sourceSnapshot.variant==='SN'){ sourceSnapshot.pv_code=''; sourceSnapshot.pv_ref_code=''; }
+        snapshot=standInfoSnapshot(sourceSnapshot);
       }
       normalized.standInfoStatus[standId]={
         saved:savedFlag,
@@ -191,20 +200,22 @@ function normalizeState(saved){
         snapshot
       };
     }else{
-      // Legacy builds did not track Stand Info save state. Keep existing data usable.
+      // v1.3.0 and earlier did not track Stand Info save state. Treat migrated
+      // and imported legacy stands as already saved so existing users are not locked out.
       normalized.standInfoStatus[standId]={saved:true,dirty:false,snapshot:standInfoSnapshot(stand)};
     }
   });
-  // Seed missing history from the last-saved values of stands already on the device.
-  Object.keys(normalized.stands).forEach(standId=>{
-    const status=normalized.standInfoStatus[standId];
-    const snap=status&&status.saved&&status.snapshot?status.snapshot:null;
-    const variant=String(snap&&snap.variant||"").trim();
-    const location=String(snap&&snap.location||"").trim();
-    if(!variant||!location) return;
-    const list=normalized.recentLocations[variant]||[];
-    normalized.recentLocations[variant]=[location,...list.filter(code=>code!==location)].slice(0,12);
-  });
+  if(!Object.keys(normalized.recentLocations).length){
+    Object.values(normalized.stands).forEach(stand=>{
+      const variant=String(stand&&stand.variant||'').trim();
+      const location=String(stand&&stand.location||'').trim();
+      if(!variant||!location) return;
+      if(!normalized.recentLocations[variant]) normalized.recentLocations[variant]=[];
+      const values=normalized.recentLocations[variant];
+      if(!values.includes(location)) values.unshift(location);
+      normalized.recentLocations[variant]=values.slice(0,8);
+    });
+  }
   Object.values(normalized.plots).forEach(plot=>{
     const maxTree=Object.values(normalized.trees)
       .filter(tree=>tree && tree.plot_key===plot.plot_key)
@@ -255,19 +266,10 @@ function updateStandInfoStatusBadge(standId){
   badge.textContent=standInfoStatusLabel(standId);
   badge.className='stand-save-badge '+standInfoStatusClass(standId);
 }
-function rememberLocation(variant, location){
-  const v=String(variant||"").trim(), code=String(location||"").trim();
-  if(!v||!code) return;
-  if(!state.recentLocations || typeof state.recentLocations!=="object") state.recentLocations={};
-  const list=Array.isArray(state.recentLocations[v])?state.recentLocations[v]:[];
-  state.recentLocations[v]=[code,...list.filter(item=>String(item)!==code)].slice(0,12);
-}
 function markStandInfoSaved(standId){
   const stand=state.stands[standId];
   if(!stand) return;
-  normalizeStandRecord(stand);
   state.standInfoStatus[standId]={saved:true,dirty:false,snapshot:standInfoSnapshot(stand)};
-  rememberLocation(stand.variant,stand.location);
 }
 function markStandInfoNeverSaved(standId){
   state.standInfoStatus[standId]={saved:false,dirty:true,snapshot:null};
@@ -391,12 +393,15 @@ function captureStandFormDraft(options){
   stand.longitude=String(value('f_lon',stand.longitude)||'').trim();
   stand.slope=value('f_slope',stand.slope);
   stand.aspect=value('f_aspect',stand.aspect);
-  stand.site_species=String(value('f_site_species',stand.site_species)||'').trim();
+  const siteSpecies=String(value('f_site_species',stand.site_species)||'').trim();
+  if(siteSpecies!=='__SEARCH__') stand.site_species=siteSpecies;
   stand.site_index=String(value('f_site_index',stand.site_index)||'').trim();
-  const tallyValue=value('f_tally_value',activeTallyValue(stand));
-  if(stand.tally_method==='fixed') stand.tree_fixed_denom=tallyValue;
-  else stand.variable_baf=tallyValue;
-  stand.baf=activeTallyValue(stand);
+  const tallyMethod=String(value('f_tally_method',stand.tally_method)||'variable');
+  stand.tally_method=tallyMethod==='fixed'?'fixed':'variable';
+  const activeTallyValue=String(value('f_tally_value',stand.tally_method==='fixed'?stand.baf_fixed:stand.baf_variable)||'').trim();
+  if(stand.tally_method==='fixed') stand.baf_fixed=activeTallyValue;
+  else stand.baf_variable=activeTallyValue;
+  stand.baf=activeTallyValue;
   stand.denom=value('f_denom',stand.denom);
   stand.brk_dbh=value('f_brkdbh',stand.brk_dbh);
   stand.notes=value('f_notes',stand.notes);
@@ -475,152 +480,130 @@ function speciesPickerEntries(stand, query){
   })).filter(matches);
   return {used,unused};
 }
-function speciesDisplayLabel(entry){
-  return `${entry.code} — ${entry.name||'Custom species'}`;
-}
-function speciesSelectOptions(stand, selected, kind){
-  const current=String(selected||"");
-  const sections=speciesPickerEntries(stand,"");
-  const represented=new Set();
-  const optional=kind==='site';
-  let html=`<option value="" ${current?'':'selected'}>${optional?'— None —':'— Select Species —'}</option>`;
-  html+='<option value="__SEARCH__">Search…</option>';
-  if(sections.used.length){
-    html+='<optgroup label="Used in this stand">';
-    sections.used.forEach(entry=>{
-      represented.add(entry.code);
-      const count=` (${entry.count} tree${entry.count===1?'':'s'})`;
-      html+=`<option value="${escapeAttr(entry.code)}" ${entry.code===current?'selected':''}>${escapeHTML(speciesDisplayLabel(entry)+count)}</option>`;
-    });
-    html+='</optgroup>';
-  }
-  if(sections.unused.length){
-    html+=`<optgroup label="${sections.used.length?'All other species':'All species'}">`;
-    sections.unused.forEach(entry=>{
-      represented.add(entry.code);
-      html+=`<option value="${escapeAttr(entry.code)}" ${entry.code===current?'selected':''}>${escapeHTML(speciesDisplayLabel(entry))}</option>`;
-    });
-    html+='</optgroup>';
-  }
-  if(current && !represented.has(current) && current!=='__OTHER__'){
+function speciesDropdownOptions(stand, selected, context){
+  const current=String(selected||'');
+  const treeContext=context==='tree';
+  const placeholder=treeContext?'— Select Species —':'— None —';
+  const sections=speciesPickerEntries(stand,'');
+  const known=new Set([...sections.used,...sections.unused].map(entry=>String(entry.code)));
+  let html=`<option value="__SEARCH__" ${stand&&stand.variant?'':'disabled'}>Search…</option>`;
+  html+=`<option value="" ${current?'':'selected'}>${placeholder}</option>`;
+  if(current && current!=='__OTHER__' && !known.has(current)){
     html+=`<option value="${escapeAttr(current)}" selected>${escapeHTML(current)} — custom species</option>`;
   }
-  html+='<option value="__OTHER__">Other/custom species…</option>';
+  const option=entry=>{
+    const use=entry.count?` (${entry.count} tree${entry.count===1?'':'s'})`:'';
+    const custom=entry.custom?' — custom species':'';
+    return `<option value="${escapeAttr(entry.code)}" ${current===String(entry.code)?'selected':''}>${escapeHTML(entry.code)} — ${escapeHTML(entry.name)}${custom}${use}</option>`;
+  };
+  if(sections.used.length){
+    html+=`<optgroup label="Used in this stand">${sections.used.map(option).join('')}</optgroup>`;
+  }
+  if(sections.unused.length){
+    html+=`<optgroup label="${sections.used.length?'All other species':'All species'}">${sections.unused.map(option).join('')}</optgroup>`;
+  }
+  if(treeContext){
+    html+=`<optgroup label="Custom entry"><option value="__OTHER__" ${current==='__OTHER__'?'selected':''}>Other — enter a custom FVS code</option></optgroup>`;
+  }
   return html;
 }
-function speciesSelectElement(kind){
-  return document.getElementById(kind==='site'?'f_site_species':'t_species');
-}
-function showTreeCustomSpecies(show){
-  const wrap=document.getElementById('t_species_other_wrap');
-  if(wrap) wrap.style.display=show?'flex':'none';
-}
-function setSpeciesSelectValue(kind, code){
-  const select=speciesSelectElement(kind);
-  if(!select) return;
-  const value=String(code||"");
-  if(value && !Array.from(select.options).some(option=>option.value===value)){
-    const option=document.createElement('option');
-    option.value=value; option.textContent=value+' — custom species';
-    select.appendChild(option);
-  }
-  select.value=value;
-  select.dataset.previous=value;
-  if(kind==='tree') showTreeCustomSpecies(value==='__OTHER__');
-  else {
-    const stand=state.stands[state.activeStand];
-    if(stand){ stand.site_species=value; refreshStandInfoDirty(stand.stand_id); updateStandInfoStatusDisplay(stand.stand_id); scheduleStandDraftPersistence(); }
-  }
-}
-function requestCustomSiteSpecies(previous){
-  modalPrompt('Custom Site Species FVS code:', value=>{
-    const code=String(value||"").trim().toUpperCase();
-    if(!code){ setSpeciesSelectValue('site',previous||''); return; }
-    setSpeciesSelectValue('site',code);
-  });
-}
-function handleSpeciesSelectChange(kind){
-  const select=speciesSelectElement(kind); if(!select) return;
-  const previous=String(select.dataset.previous||"");
-  const value=select.value;
-  if(value==='__SEARCH__'){
-    select.value=previous;
-    openSpeciesSearch(kind,previous);
-    return;
-  }
-  if(value==='__OTHER__'){
-    if(kind==='tree'){
-      select.dataset.previous='__OTHER__';
-      showTreeCustomSpecies(true);
-    }else{
-      select.value=previous;
-      requestCustomSiteSpecies(previous);
-    }
-    return;
-  }
-  select.dataset.previous=value;
-  if(kind==='tree') showTreeCustomSpecies(false);
-  else captureStandFormDraft();
-}
-let speciesSearchState=null;
 function speciesSearchResultHTML(entry){
-  const count=entry.count?`<span class="species-use-count">${entry.count} tree${entry.count===1?'':'s'}</span>`:"";
-  const custom=entry.custom?'<span class="species-custom-tag">custom</span>':"";
+  const count=entry.count?`<span class="species-use-count">${entry.count} tree${entry.count===1?'':'s'}</span>`:'';
+  const custom=entry.custom?'<span class="species-custom-tag">custom</span>':'';
   return `<button type="button" class="species-option" data-code="${escapeAttr(entry.code)}" onclick="chooseSpeciesSearchResult(this.dataset.code)"><span><strong>${escapeHTML(entry.code)}</strong> — ${escapeHTML(entry.name)} ${custom}</span>${count}</button>`;
 }
-function renderSpeciesSearchResults(){
-  const results=document.getElementById('speciesSearchResults');
-  const input=document.getElementById('speciesSearchInput');
-  const stand=state.stands[state.activeStand];
-  if(!results||!stand) return;
-  const sections=speciesPickerEntries(stand,input?input.value:"");
-  let html="";
-  if(sections.used.length) html+=`<div class="species-group-label">Used in this stand</div>${sections.used.map(speciesSearchResultHTML).join("")}`;
-  if(sections.unused.length) html+=`<div class="species-group-label">${sections.used.length?'All other species':'All species'}</div>${sections.unused.map(speciesSearchResultHTML).join("")}`;
+let speciesSearchState=null;
+function speciesSearchResultsHTML(query){
+  if(!speciesSearchState) return '';
+  const stand=state.stands[speciesSearchState.standId];
+  const sections=speciesPickerEntries(stand,query);
+  let html='';
+  if(sections.used.length) html+=`<div class="species-group-label">Used in this stand</div>${sections.used.map(speciesSearchResultHTML).join('')}`;
+  if(sections.unused.length) html+=`<div class="species-group-label">${sections.used.length?'All other species':'All species'}</div>${sections.unused.map(speciesSearchResultHTML).join('')}`;
   if(!sections.used.length&&!sections.unused.length) html+='<div class="species-no-results">No matching species.</div>';
-  html+='<div class="species-group-label">Custom entry</div><button type="button" class="species-option species-other-option" data-code="__OTHER__" onclick="chooseSpeciesSearchResult(this.dataset.code)"><span><strong>Other</strong> — enter a custom FVS code</span></button>';
-  results.innerHTML=html;
+  if(speciesSearchState.context==='tree'){
+    html+='<div class="species-group-label">Custom entry</div><button type="button" class="species-option species-other-option" data-code="__OTHER__" onclick="chooseSpeciesSearchResult(this.dataset.code)"><span><strong>Other</strong> — enter a custom FVS code</span></button>';
+  }
+  return html;
 }
-function openSpeciesSearch(kind, previous){
-  closeSpeciesSearch();
-  const select=speciesSelectElement(kind);
-  speciesSearchState={kind,previous:String(previous!==undefined?previous:(select&&select.dataset.previous)||"")};
-  const overlay=document.createElement('div');
-  overlay.id='speciesSearchOverlay';
-  overlay.className='modal-overlay species-search-overlay';
-  overlay.innerHTML=`<div class="species-search-dialog" role="dialog" aria-modal="true" aria-labelledby="species-search-title">
-    <h2 id="species-search-title">Search ${kind==='site'?'Site Species':'Tree Species'}</h2>
-    <p class="muted">Tap the search box to open the keyboard, or scroll through the results below.</p>
-    <input id="speciesSearchInput" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search code or common name…" oninput="renderSpeciesSearchResults()">
-    <div id="speciesSearchResults" class="species-search-results" role="listbox"></div>
-    <div class="species-search-actions"><button type="button" class="secondary" onclick="closeSpeciesSearch()">Cancel</button></div>
-  </div>`;
-  document.body.appendChild(overlay);
-  renderSpeciesSearchResults();
-  // Deliberately focus the dialog, not the text field, so mobile keyboards stay closed.
-  const dialog=overlay.querySelector('.species-search-dialog');
-  dialog.tabIndex=-1; dialog.focus({preventScroll:true});
+function renderSpeciesSearchResults(){
+  const input=document.getElementById('speciesSearchInput');
+  const results=document.getElementById('speciesSearchResults');
+  if(results) results.innerHTML=speciesSearchResultsHTML(input?input.value:'');
 }
 function closeSpeciesSearch(){
   const overlay=document.getElementById('speciesSearchOverlay');
   if(overlay) overlay.remove();
   speciesSearchState=null;
 }
-function chooseSpeciesSearchResult(code){
-  if(!speciesSearchState) return;
-  const {kind,previous}=speciesSearchState;
-  if(code==='__OTHER__'){
-    closeSpeciesSearch();
-    if(kind==='tree') setSpeciesSelectValue('tree','__OTHER__');
-    else requestCustomSiteSpecies(previous);
+function openSpeciesSearch(context, select){
+  const stand=state.stands[state.activeStand];
+  if(!stand||!stand.variant){
+    if(select) select.value=select.dataset.currentValue||'';
+    toast('Select an FVS Variant first');
     return;
   }
-  setSpeciesSelectValue(kind,code);
   closeSpeciesSearch();
+  const previous=String((select&&select.dataset.currentValue)||'');
+  if(select) select.value=previous;
+  speciesSearchState={context,selectId:select&&select.id,standId:stand.stand_id,previous};
+  const overlay=document.createElement('div');
+  overlay.id='speciesSearchOverlay';
+  overlay.className='modal-overlay species-search-overlay';
+  overlay.innerHTML=`<div class="species-search-dialog" role="dialog" aria-modal="true" aria-labelledby="species-search-title">
+    <div class="species-search-header"><h2 id="species-search-title">Search Species</h2><button type="button" class="secondary" onclick="closeSpeciesSearch()">Cancel</button></div>
+    <label for="speciesSearchInput">FVS code or common name</label>
+    <input id="speciesSearchInput" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. JP, jack, or pine" oninput="renderSpeciesSearchResults()">
+    <div id="speciesSearchResults" class="species-search-results" role="listbox"></div>
+  </div>`;
+  document.body.appendChild(overlay);
+  renderSpeciesSearchResults();
+  window.setTimeout(()=>document.getElementById('speciesSearchInput')?.focus(),30);
 }
-document.addEventListener('keydown',event=>{
-  if(event.key==='Escape'&&document.getElementById('speciesSearchOverlay')) closeSpeciesSearch();
-});
+function chooseSpeciesSearchResult(code){
+  if(!speciesSearchState) return;
+  const context=speciesSearchState.context;
+  const select=document.getElementById(speciesSearchState.selectId);
+  if(select){
+    select.value=code;
+    if(select.value!==code){
+      const option=document.createElement('option');
+      option.value=code; option.textContent=code+' — custom species';
+      select.appendChild(option); select.value=code;
+    }
+    select.dataset.currentValue=code;
+  }
+  if(context==='tree'){
+    const wrap=document.getElementById('t_species_other_wrap');
+    if(wrap) wrap.style.display=code==='__OTHER__'?'flex':'none';
+  }else if(context==='site'){
+    captureStandFormDraft();
+  }
+  closeSpeciesSearch();
+  if(context==='tree'&&code==='__OTHER__') window.setTimeout(()=>document.getElementById('t_species_other')?.focus(),0);
+}
+function onSpeciesDropdownChange(context, select){
+  if(!select) return;
+  if(select.value==='__SEARCH__'){
+    openSpeciesSearch(context,select);
+    return;
+  }
+  select.dataset.currentValue=select.value;
+  if(context==='tree'){
+    const wrap=document.getElementById('t_species_other_wrap');
+    if(wrap) wrap.style.display=select.value==='__OTHER__'?'flex':'none';
+    if(select.value==='__OTHER__') window.setTimeout(()=>document.getElementById('t_species_other')?.focus(),0);
+  }else if(context==='site') captureStandFormDraft();
+}
+function updateSiteSpeciesOptions(){
+  const stand=state.stands[state.activeStand];
+  const select=document.getElementById('f_site_species');
+  if(!stand||!select) return;
+  select.innerHTML=speciesDropdownOptions(stand,stand.site_species,'site');
+  select.value=stand.site_species||'';
+  select.dataset.currentValue=stand.site_species||'';
+  select.disabled=!stand.variant;
+}
 
 function computeInvPlotSize(radiusFt){
   const r = parseFloat(radiusFt)||0;
@@ -647,56 +630,61 @@ function updateRadiusHint(){
 function updateStandRadiusHint(){
   const el=document.getElementById('f_denom'); const hint=document.getElementById('f_radius_hint');
   if(!el||!hint) return;
-  const d=Math.abs(parseFloat(el.value)||0);
+  const d=parseFloat(el.value)||0;
   hint.textContent = d>0 ? ("1/"+d+" acre = "+fractionToRadius(d).toFixed(2)+" ft radius") : "— enter a denominator —";
 }
 function activeTallyValue(stand){
-  if(!stand) return "";
-  return stand.tally_method==='fixed'?String(stand.tree_fixed_denom||""):String(stand.variable_baf||"");
+  if(!stand) return '';
+  return stand.tally_method==='fixed'?String(stand.baf_fixed||''):String(stand.baf_variable||'');
 }
-function exportBasalAreaFactor(stand){
-  if(!stand) return "";
+function exportedBasalAreaFactor(stand){
+  if(!stand) return '';
   if(stand.tally_method==='fixed'){
-    const raw=String(stand.tree_fixed_denom||"").trim();
-    const value=Number(raw);
-    return raw!==""&&Number.isFinite(value)&&value!==0 ? String(-Math.abs(value)) : "";
+    const raw=String(stand.baf_fixed||'').trim();
+    const number=Number(raw);
+    if(raw===''||!Number.isFinite(number)||number===0) return '';
+    return String(-Math.abs(number));
   }
-  return String(stand.variable_baf||"").trim();
+  return String(stand.baf_variable||'').trim();
 }
 function updateTreeTallyRadiusHint(){
   const input=document.getElementById('f_tally_value');
-  const hint=document.getElementById('f_tree_radius_hint');
+  const hint=document.getElementById('f_tally_radius_hint');
   if(!input||!hint) return;
-  const d=Math.abs(Number(input.value));
-  hint.textContent=Number.isFinite(d)&&d>0 ? `1/${d} acre = ${fractionToRadius(d).toFixed(1)} ft radius` : '— enter a non-zero denominator —';
+  const value=Number(input.value);
+  const denom=Math.abs(value);
+  hint.textContent=Number.isFinite(denom)&&denom>0
+    ?('1/'+formatNumber(denom)+' acre = '+fractionToRadius(denom).toFixed(1)+' ft radius')
+    :'— enter a non-zero denominator —';
+}
+function formatNumber(value){
+  return Number.isInteger(value)?String(value):String(value);
 }
 function updateTallyMethodControls(){
   const stand=state.stands[state.activeStand]; if(!stand) return;
+  const method=stand.tally_method==='fixed'?'fixed':'variable';
+  const hidden=document.getElementById('f_tally_method');
   const input=document.getElementById('f_tally_value');
   const label=document.getElementById('f_tally_value_label');
-  const hintField=document.getElementById('f_tree_radius_field');
-  const variableButton=document.getElementById('tallybtn_variable');
-  const fixedButton=document.getElementById('tallybtn_fixed');
-  const fixed=stand.tally_method==='fixed';
-  if(variableButton) variableButton.classList.toggle('active',!fixed);
-  if(fixedButton) fixedButton.classList.toggle('active',fixed);
-  if(label) label.textContent=fixed?'Trees Fixed Plot (1/n acre)':'Variable BAF (ft²/ac)';
+  const radius=document.getElementById('f_tally_radius_field');
+  if(hidden) hidden.value=method;
+  document.getElementById('tallybtn_variable')?.classList.toggle('active',method==='variable');
+  document.getElementById('tallybtn_fixed')?.classList.toggle('active',method==='fixed');
   if(input){
     input.value=activeTallyValue(stand);
-    input.step=fixed?'1':'0.1';
-    input.placeholder=fixed?'e.g. 5':'e.g. 20';
+    input.placeholder=method==='fixed'?'e.g. 5':'e.g. 20';
+    input.step=method==='fixed'?'1':'0.1';
+    input.oninput=method==='fixed'?updateTreeTallyRadiusHint:null;
   }
-  if(hintField) hintField.hidden=!fixed;
-  if(fixed) updateTreeTallyRadiusHint();
+  if(label) label.textContent=method==='fixed'?'Trees Fixed Plot (1/n acre)':'Variable BAF (ft²/ac)';
+  if(radius) radius.hidden=method!=='fixed';
+  if(method==='fixed') updateTreeTallyRadiusHint();
 }
-function setStandTallyMethod(method){
+function setTallyMethod(method){
   const stand=state.stands[state.activeStand]; if(!stand) return;
   const next=method==='fixed'?'fixed':'variable';
-  const input=document.getElementById('f_tally_value');
-  if(input){
-    if(stand.tally_method==='fixed') stand.tree_fixed_denom=input.value;
-    else stand.variable_baf=input.value;
-  }
+  captureStandFormDraft({persist:false});
+  if(stand.tally_method===next){ updateTallyMethodControls(); return; }
   stand.tally_method=next;
   stand.baf=activeTallyValue(stand);
   updateTallyMethodControls();
@@ -718,7 +706,7 @@ function newStand(){
       district:"", location:"", crew:"", date:new Date().toISOString().slice(0,10),
       site_species:"", site_index:"", pv_code:"", pv_ref_code:"", ecoregion:"", elevation:"",
       latitude:"", longitude:"", slope:"", aspect:"", state_cd:"", county:"", notes:"",
-      tally_method:"variable", variable_baf:"", tree_fixed_denom:"", baf:"", denom:"100", brk_dbh:"5", dbh_mode:"real"
+      tally_method:"variable", baf_variable:"", baf_fixed:"", baf:"", denom:"100", brk_dbh:"5", dbh_mode:"real"
     };
     markStandInfoNeverSaved(key);
     state.activeStand=key; state.activePlot=null; saveState(); render();
@@ -765,16 +753,13 @@ function setStandVariantSelection(nextVariant, source, options){
   }
   s.variant=next;
   if(sel) sel.value=next;
-  if(changed){ s.location=''; s.site_species=''; }
-  else if(loc) s.location=loc.value;
+  if(changed){
+    s.location='';
+    s.site_species='';
+  }else if(loc) s.location=loc.value;
   if(loc) loc.innerHTML=locationOptions(next,changed?'':s.location);
-  const siteSpecies=document.getElementById('f_site_species');
-  if(siteSpecies){
-    siteSpecies.innerHTML=speciesSelectOptions(s,changed?'':s.site_species,'site');
-    siteSpecies.value=changed?'':s.site_species;
-    siteSpecies.dataset.previous=siteSpecies.value;
-  }
   updateVariantSpecificFields(next);
+  updateSiteSpeciesOptions();
   updateVariantMap();
   refreshStandInfoDirty(s.stand_id);
   updateStandInfoStatusDisplay(s.stand_id);
@@ -792,28 +777,38 @@ function onStandVariantChange(){
 async function saveStandForm(){
   const s=state.stands[state.activeStand]; if(!s) return;
   captureStandFormDraft({persist:false});
-  if(!s.variant){ toast("⚠ Select an FVS Variant to save the stand"); document.getElementById('f_variant')?.focus(); scheduleStandDraftPersistence(); return; }
-  if(!String(s.location||'').trim()){
-    toast("⚠ Select a Location to save the stand");
-    document.getElementById('f_location')?.focus();
+  if(!s.variant){
+    toast("⚠ Select an FVS Variant to save the stand");
+    document.getElementById('f_variant')?.focus();
     scheduleStandDraftPersistence(); return;
   }
-  const tallyVal=String(activeTallyValue(s)||'').trim();
-  const tallyNum=Number(tallyVal);
-  if(s.tally_method==='fixed'){
-    if(tallyVal===''||!Number.isFinite(tallyNum)||tallyNum===0){ toast("⚠ Enter a non-zero Trees Fixed Plot denominator"); document.getElementById('f_tally_value')?.focus(); scheduleStandDraftPersistence(); return; }
-  }else if(tallyVal===''||!Number.isFinite(tallyNum)||tallyNum<=0){
-    toast("⚠ Enter a positive Variable BAF to save the stand"); document.getElementById('f_tally_value')?.focus(); scheduleStandDraftPersistence(); return;
+  if(!String(s.location||'').trim()){
+    toast("⚠ Select a Location to save the stand");
+    const locationField=document.getElementById('f_location');
+    locationField?.focus();
+    locationField?.scrollIntoView({block:'center',behavior:'smooth'});
+    scheduleStandDraftPersistence(); return;
   }
-  if(String(s.site_index||'').trim()!=='' && !/^-?\d+$/.test(String(s.site_index).trim())){
-    toast("⚠ Site Index must be an integer"); document.getElementById('f_site_index')?.focus(); scheduleStandDraftPersistence(); return;
+  const tallyValue=String(s.tally_method==='fixed'?s.baf_fixed:s.baf_variable).trim();
+  const tallyNumber=Number(tallyValue);
+  if(tallyValue===''||!Number.isFinite(tallyNumber)||(s.tally_method==='fixed'?tallyNumber===0:tallyNumber<=0)){
+    toast(s.tally_method==='fixed'?"⚠ Enter a non-zero fixed-plot denominator":"⚠ Enter a positive Variable BAF");
+    document.getElementById('f_tally_value')?.focus();
+    scheduleStandDraftPersistence(); return;
   }
-  s.baf=activeTallyValue(s);
+  const siteIndex=String(s.site_index||'').trim();
+  if(siteIndex!=='' && !/^[+-]?\d+$/.test(siteIndex)){
+    toast("⚠ Site Index must be an integer");
+    document.getElementById('f_site_index')?.focus();
+    scheduleStandDraftPersistence(); return;
+  }
   if(s.variant==='SN'){
     s.ecoregion=String(s.ecoregion||'').trim();
     s.pv_code=''; s.pv_ref_code='';
   }
   const priorStatus=JSON.parse(JSON.stringify(getStandInfoStatus(s.stand_id)));
+  const priorRecentLocations=JSON.parse(JSON.stringify(state.recentLocations||{}));
+  rememberLocation(s.variant,s.location);
   markStandInfoSaved(s.stand_id);
   // Replace any pending draft write with this single authoritative save.
   if(standDraftPersistTimer){
@@ -823,6 +818,7 @@ async function saveStandForm(){
   const backend=await saveState();
   if(!backend){
     state.standInfoStatus[s.stand_id]=priorStatus;
+    state.recentLocations=priorRecentLocations;
     refreshStandInfoDirty(s.stand_id);
     render();
     return;
@@ -1069,10 +1065,10 @@ function gatherExportData(standIds, standOverrides){
     const plots=plotsForStand(sid);
     const sr=blankRow(STAND_HEADERS); Object.assign(sr, standBaseFields(s));
     sr.STAND_ID=s.stand_id; sr.NUM_PLOTS=plots.length;
-    sr.BASAL_AREA_FACTOR=exportBasalAreaFactor(s);
-    sr.INV_PLOT_SIZE=(s.denom!==undefined&&s.denom!=="")?s.denom:"";
+    sr.BASAL_AREA_FACTOR=exportedBasalAreaFactor(s);
     sr.SITE_SPECIES=s.site_species||"";
     sr.SITE_INDEX=s.site_index||"";
+    sr.INV_PLOT_SIZE=(s.denom!==undefined&&s.denom!=="")?s.denom:"";
     sr.BRK_DBH=(s.brk_dbh!==undefined&&s.brk_dbh!=="")?s.brk_dbh:"";
     standRows.push(sr);
     plots.forEach(p=>{
@@ -1080,7 +1076,7 @@ function gatherExportData(standIds, standOverrides){
       pr.STAND_ID=s.stand_id; pr.PLOT_ID=p.plot_id; pr.STANDPLOT_ID=standplotId(s.stand_id,p.plot_id);
       pr.LATITUDE=p.lat||s.latitude; pr.LONGITUDE=p.lon||s.longitude;
       pr.ASPECT=p.aspect||s.aspect; pr.SLOPE=p.slope||s.slope; pr.NUM_PLOTS=1;
-      pr.BASAL_AREA_FACTOR=exportBasalAreaFactor(s);
+      pr.BASAL_AREA_FACTOR=exportedBasalAreaFactor(s);
       pr.INV_PLOT_SIZE=(s.denom!==undefined&&s.denom!=="")?s.denom:"";
       pr.BRK_DBH=(s.brk_dbh!==undefined&&s.brk_dbh!=="")?s.brk_dbh:"";
       plotRows.push(pr);
@@ -1321,21 +1317,29 @@ async function importCSVFiles(files){
   }
   importData({standRows, plotRows, treeRows, metaRows:[]});
 }
+function tallyFieldsFromExport(value){
+  const raw=value===undefined||value===null?'':String(value).trim();
+  const number=Number(raw);
+  const fixed=raw!==''&&Number.isFinite(number)&&number<0;
+  return {
+    tally_method:fixed?'fixed':'variable',
+    baf_variable:fixed?'':raw,
+    baf_fixed:fixed?raw:'',
+    baf:raw
+  };
+}
 function mkStandFromRow(id,r,m){
   const variant=String(r.VARIANT||'').trim();
-  const baf=String(r.BASAL_AREA_FACTOR??'').trim();
-  const bafNumber=Number(baf);
-  const fixed=baf!==''&&Number.isFinite(bafNumber)&&bafNumber<0;
-  return normalizeStandRecord({ stand_id:id, variant, inv_year:r.INV_YEAR||'',
+  const tally=tallyFieldsFromExport(r.BASAL_AREA_FACTOR);
+  return { stand_id:id, variant, inv_year:r.INV_YEAR||'',
     region:'',forest:'',district:'',location:String(r.LOCATION||'').trim(),
     crew:(m&&m.CREW)||'', date:(m&&m.DATE)||'',
-    site_species:String(r.SITE_SPECIES||'').trim(), site_index:(r.SITE_INDEX!==undefined?String(r.SITE_INDEX):''),
+    site_species:String(r.SITE_SPECIES||'').trim(), site_index:r.SITE_INDEX!==undefined?String(r.SITE_INDEX).trim():'',
     ecoregion:String(r.ECOREGION||'').trim(),
     pv_code:variant==='SN'?'':String(r.PV_CODE||'').trim(), pv_ref_code:variant==='SN'?'':String(r.PV_REF_CODE||'').trim(),
     elevation:r.ELEVFT||'', latitude:r.LATITUDE||'', longitude:r.LONGITUDE||'',
     slope:r.SLOPE||'', aspect:r.ASPECT||'', state_cd:'',county:'', notes:(m&&m.NOTES)||'',
-    tally_method:fixed?'fixed':'variable', variable_baf:fixed?'':baf, tree_fixed_denom:fixed?baf:'', baf,
-    denom:(r.INV_PLOT_SIZE!==undefined?String(r.INV_PLOT_SIZE):''), brk_dbh:(r.BRK_DBH!==undefined?String(r.BRK_DBH):'') });
+    ...tally, denom:(r.INV_PLOT_SIZE!==undefined?String(r.INV_PLOT_SIZE):''), brk_dbh:(r.BRK_DBH!==undefined?String(r.BRK_DBH):''), dbh_mode:'real' };
 }
 function importWorkbook(wb){
   importData({
@@ -1391,7 +1395,11 @@ function importData(bundle){
       damage2:String(r.DAMAGE2||''), severity2:String(r.SEVERITY2||'') };
     addedTrees++;
   });
-  importedStandIds.forEach(markStandInfoSaved);
+  importedStandIds.forEach(id=>{
+    const stand=state.stands[id];
+    if(stand) rememberLocation(stand.variant,stand.location);
+    markStandInfoSaved(id);
+  });
   touchedStandIds.forEach(id=>{ if(!importedStandIds.has(id)) refreshStandInfoDirty(id); });
   saveState(); ui.tab='review'; render();
   toast("Imported "+addedStands+" stands, "+addedPlots+" plots, "+addedTrees+" trees"+(skippedPlots?" · "+skippedPlots+" existing plots skipped":""));
@@ -1454,42 +1462,35 @@ function variantOptions(selected){
   }
   return `<option value="" ${selected?'':'selected'}>— select —</option>`+opts;
 }
-function recentLocationsForVariant(variant){
-  const v=String(variant||""); if(!v) return [];
-  const used=[];
-  Object.keys(state.stands).forEach(standId=>{
-    const status=getStandInfoStatus(standId);
-    const source=status.saved&&status.snapshot?status.snapshot:null;
-    if(source&&String(source.variant||"")===v){
-      const code=String(source.location||"").trim();
-      if(code&&!used.includes(code)) used.push(code);
-    }
-  });
-  const history=state.recentLocations&&Array.isArray(state.recentLocations[v])?state.recentLocations[v]:[];
-  return [...history.filter(code=>used.includes(String(code))),...used.filter(code=>!history.includes(code))];
+function rememberLocation(variant, location){
+  const v=String(variant||'').trim(), code=String(location||'').trim();
+  if(!v||!code) return;
+  if(!state.recentLocations||typeof state.recentLocations!=='object') state.recentLocations={};
+  const current=Array.isArray(state.recentLocations[v])?state.recentLocations[v]:[];
+  state.recentLocations[v]=[code,...current.filter(item=>String(item)!==code)].slice(0,8);
+}
+function recentLocationsForVariant(variant, codes){
+  const valid=new Set((codes||[]).map(item=>String(item[0])));
+  const recent=state.recentLocations&&Array.isArray(state.recentLocations[variant])?state.recentLocations[variant]:[];
+  return recent.map(String).filter((code,index,array)=>valid.has(code)&&array.indexOf(code)===index);
 }
 function locationOptions(variant, selected){
-  const codes=sortLocationCodes(LOCATION_CODES[variant]||[],variant);
-  const valid=new Map(codes.map(row=>[String(row[0]),row]));
-  const recents=recentLocationsForVariant(variant).filter(code=>valid.has(String(code))).map(String);
-  const recentSet=new Set(recents);
-  let opts=`<option value="" ${selected?'':'selected'}>- Select / Required -</option>`;
-  if(recents.length){
-    opts+='<optgroup label="Recently used">';
-    recents.forEach(code=>{
-      const row=valid.get(code);
-      opts+=`<option value="${escapeAttr(code)}" ${code===String(selected)?'selected':''}>${escapeHTML(code+' — '+row[1])}</option>`;
-    });
-    opts+='</optgroup>';
+  const codes = sortLocationCodes(LOCATION_CODES[variant] || [], variant);
+  const byCode=new Map(codes.map(item=>[String(item[0]),item]));
+  const recent=recentLocationsForVariant(variant,codes);
+  let opts = `<option value="" ${selected?'':'selected'}>- Select / Required -</option>`;
+  if(recent.length){
+    opts += `<optgroup label="Recently used">`+recent.map(code=>{
+      const item=byCode.get(code); return `<option value="${escapeAttr(code)}" ${code===String(selected)?'selected':''}>${escapeHTML(code)} — ${escapeHTML(item?item[1]:'')}</option>`;
+    }).join('')+`</optgroup>`;
   }
-  const remaining=codes.filter(row=>!recentSet.has(String(row[0])));
+  const recentSet=new Set(recent);
+  const remaining=codes.filter(item=>!recentSet.has(String(item[0])));
   if(remaining.length){
-    opts+=`<optgroup label="${recents.length?'All locations':'Locations'}">`;
-    opts+=remaining.map(([c,n])=>`<option value="${escapeAttr(c)}" ${String(c)===String(selected)?'selected':''}>${escapeHTML(c+' — '+n)}</option>`).join("");
-    opts+='</optgroup>';
+    opts += `<optgroup label="All locations">`+remaining.map(([c,n])=>`<option value="${escapeAttr(c)}" ${String(c)===String(selected)?'selected':''}>${escapeHTML(c)} — ${escapeHTML(n)}</option>`).join("")+`</optgroup>`;
   }
-  if(selected&&!valid.has(String(selected))){
-    opts+=`<option value="${escapeAttr(selected)}" selected>${escapeHTML(selected)} (custom)</option>`;
+  if(selected && !codes.some(x=>String(x[0])===String(selected))){
+    opts += `<option value="${escapeAttr(selected)}" selected>${escapeHTML(selected)} (custom)</option>`;
   }
   return opts;
 }
@@ -1768,14 +1769,6 @@ const FVS_VARIANT_GEOJSON =
 {"type":"Feature","geometry":{"type":"MultiPolygon","coordinates":[[[[-3366402.4179,4953574.329600001],[-3411466.864499999,4941291.296499999],[-3441374.1918,4939189.5942],[-3470246.517000001,4929425.2224],[-3484122.4595999997,4936126.3686999995],[-3500095.2205,4925995.376],[-3521671.0428,4934651.4626],[-3548177.596000001,4934060.099300001],[-3567640.1115000006,4926028.475099999],[-3564232.4332,4905610.6962],[-3575948.246099999,4884151.8917],[-3569753.1382,4850147.6755],[-3593731.0461,4852934.119000001],[-3622269.456599999,4848789.3934],[-3618821.0078,4834608.1614],[-3598322.0295,4833770.6985],[-3570520.781300001,4813644.1548999995],[-3542320.9760999996,4835057.3585],[-3519288.3353000004,4838983.4299],[-3503062.6886,4829795.336200001],[-3477938.269200001,4828381.922],[-3468701.8911000006,4837156.7577],[-3422003.6273,4838393.498199999],[-3403185.83,4846214.9519],[-3396565.5119000003,4865063.703],[-3397289.2053999994,4889353.3837],[-3381449.601399999,4892304.737],[-3356452.3454,4879636.2675],[-3352329.9876000006,4905506.1295],[-3367051.5767,4927468.252599999],[-3354703.6184,4937368.0779],[-3366402.4179,4953574.329600001]]],[[[-4168421.103700001,5017224.0316],[-4178604.1963,4998002.8467],[-4155637.2632,4977698.2972],[-4146317.2103000004,4983252.6667],[-4168421.103700001,5017224.0316]]],[[[-4517562.1888,5187468.389699999],[-4567650.8419,5185683.1336],[-4588205.835999999,5174178.8816],[-4619117.105,5177424.3509],[-4619569.2509,5165871.542099999],[-4556284.9032000005,5145261.357999999],[-4535766.7786,5156762.8597],[-4515459.797,5149989.2019],[-4508790.4059,5127729.7643],[-4467385.086100001,5116999.997199999],[-4450413.4943,5102937.4882],[-4417203.2338,5102678.0833],[-4397717.971999999,5096458.2959],[-4374125.5341,5102034.119999999],[-4362686.126700001,5112088.6866999995],[-4345144.01,5101578.303200001],[-4307181.3029,5068126.6962],[-4298930.423900001,5082447.0348000005],[-4318023.2466,5092373.1603999995],[-4313093.429300001,5112860.429199999],[-4323858.0581,5126418.8587],[-4357989.0392,5137632.990700001],[-4378604.876,5131042.4081999995],[-4399638.4537,5154856.5393],[-4418337.202199999,5163396.176000001],[-4435606.8072999995,5162115.452500001],[-4439840.5145,5145211.1042],[-4463657.768200001,5136238.693700001],[-4488759.3379,5147196.9704],[-4486502.8858,5164011.470899999],[-4498273.1951,5181380.8529],[-4517562.1888,5187468.389699999]]],[[[-4648028.3473000005,5229786.827400001],[-4673172.5275,5218079.059599999],[-4665064.378699999,5204154.773700001],[-4649426.903000001,5201551.564200001],[-4635037.3079,5212550.797499999],[-4648028.3473000005,5229786.827400001]]],[[[-4811336.7508000005,5309145.339],[-4824369.794600001,5291616.618799999],[-4803187.968,5284733.5940000005],[-4800101.6647,5302989.7195999995],[-4811336.7508000005,5309145.339]]],[[[-5038758.8277,5493806.8609],[-5069777.979900001,5495273.048699999],[-5090259.292300001,5482713.794199999],[-5073969.3574,5463861.201400001],[-5052285.157299999,5457000.915899999],[-5023268.282299999,5437551.560699999],[-4979721.6007,5421193.922800001],[-4950939.2083,5388505.672],[-4922545.912699999,5373281.6818],[-4892467.540899999,5328322.517899999],[-4860368.4231,5301034.261499999],[-4849217.1318,5307786.0985],[-4891632.662900001,5361483.4683],[-4878989.4892,5379109.8796],[-4891169.1053,5401154.0561],[-4938814.030300001,5405099.8551],[-4967116.195,5426219.892999999],[-4985632.4553,5433962.055],[-5007764.2666,5478806.1951],[-5024183.9508,5463700.216600001],[-5038758.8277,5493806.8609]]],[[[-4344658.0693,5566343.409],[-4352952.374500001,5548780.7951],[-4339328.8564,5543061.146400001],[-4325012.012,5554761.568600001],[-4344658.0693,5566343.409]]],[[[-5115544.808800001,5572161.9025],[-5136437.8925,5550087.274],[-5135114.2896,5529462.3101],[-5098596.115900001,5508027.051999999],[-5084911.400800001,5491745.5535],[-5061141.012599999,5501551.184],[-5098848.864700001,5523941.2140999995],[-5090147.7784,5534947.5858],[-5115544.808800001,5572161.9025]]],[[[-3970280.0490000006,5635226.269400001],[-3988926.599199999,5653541.982799999],[-4007637.6523,5639006.343699999],[-3989229.2212000005,5588154.8763999995],[-3977292.3932000007,5564890.488299999],[-3960773.6720000003,5563207.2217999995],[-3933739.8073999994,5547611.1395],[-3907443.3291999996,5583849.127599999],[-3918623.006100001,5615491.5429],[-3941697.3495000005,5631149.591499999],[-3970280.0490000006,5635226.269400001]]],[[[-5211413.48,5701721.465600001],[-5218997.0592,5677432.697899999],[-5200599.4098000005,5677592.3517],[-5211413.48,5701721.465600001]]],[[[-5267395.7872,5652873.2862],[-5267690.443700001,5707462.879000001],[-5281452.4507,5697787.0897],[-5282879.4035,5666731.3158],[-5267395.7872,5652873.2862]]],[[[-5314575.0748,5820728.1942],[-5302045.0087,5793791.1536],[-5282706.746200001,5801971.805400001],[-5286284.046800001,5818842.6767],[-5314575.0748,5820728.1942]]],[[[-4200070.2982,5860943.8554],[-4197202.3291,5879476.510399999],[-4209637.162799999,5907976.151000001],[-4227316.398399999,5918351.703299999],[-4220383.5799,5880315.521199999],[-4200070.2982,5860943.8554]]],[[[-5427086.310799999,6068586.623],[-5445149.249,6069816.3387],[-5433340.0843,6042841.531300001],[-5409741.7279,6055872.5074000005],[-5427086.310799999,6068586.623]]],[[[-3929213.2793000005,6078968.2564],[-3957416.6761000007,6076192.892000001],[-3970700.1722999997,6052980.866],[-3960116.5746999998,6033158.1095],[-3938757.901900001,6026941.256200001],[-3920310.864600001,5995395.2863],[-3911710.8236,5934457.260199999],[-3894646.710000001,5938035.3434999995],[-3875249.3002000004,5931183.3248],[-3863123.5314000007,5915798.7486000005],[-3839968.4242000002,5927224.1152],[-3869637.1023999993,5964328.4308],[-3881704.8982999995,5990931.3643],[-3880711.6654000003,6018624.217],[-3897970.9285000004,6033099.759400001],[-3915800.4515000004,6038170.8082],[-3934006.3629,6070082.6132],[-3929213.2793000005,6078968.2564]]],[[[-5391858.241900001,6104346.729],[-5394107.847200001,6123270.802999999],[-5415012.232799999,6153096.0055],[-5427960.132300001,6141142.8522],[-5430232.5975,6114211.681299999],[-5410799.443499999,6100464.9178],[-5391858.241900001,6104346.729]]],[[[-2665303.8697999995,4727582.4037],[-2269741.200200001,5499614.915999999],[-2284009.556399999,5510150.600099999],[-2334210.049900001,5569453.7116],[-2356398.7622999996,5591889.4056],[-2417659.951199999,5613362.626599999],[-2425350.182,5612659.2348],[-2453559.5944999997,5633796.2336],[-2469100.7676999997,5654619.951400001],[-2551467.8351000007,5708606.9606],[-2556601.8812000006,5726130.355599999],[-2578117.2437999994,5734268.6679],[-2578746.5548,5744622.027000001],[-2625629.6107,5789489.4122],[-2649018.8244000003,5791152.4702],[-2663695.6472999994,5805356.417199999],[-2699128.3376,5817906.8246],[-2710161.3321,5840370.206800001],[-2731421.5146999992,5859855.5633000005],[-2721129.6685000006,5875531.5867],[-2762895.6216,5913273.011399999],[-2795302.5987,5931105.1514],[-2806139.0153,5929690.6829],[-2812924.4981999993,5956744.480900001],[-2827175.4344999995,5981385.6348],[-2870092.4092999995,6032839.918500001],[-2895399.257099999,6043203.59],[-2927406.363500001,6041783.361099999],[-2965447.0294000003,6051691.942600001],[-2993691.8763999995,6081319.810799999],[-3033805.5286999997,6100867.307700001],[-3084119.707800001,6107155.4376],[-3124134.5143,6122597.680400001],[-3144343.806500001,6142854.862199999],[-3172253.7580999993,6151139.715600001],[-3222804.241800001,6149757.5998],[-3255271.256100001,6126750.4092999995],[-3278531.1049000006,6125745.2883],[-3315550.4163000006,6136735.1888999995],[-3363607.066299999,6171066.6306],[-3395178.1589,6202489.998],[-3428984.011,6180322.2301],[-3449912.971999999,6191180.994999999],[-3433173.6964999996,6134661.774700001],[-3420499.4449000005,6117046.451199999],[-3392462.1008,6042153.530300001],[-3392983.9824,6021818.978499999],[-3402103.5579000004,5989521.5611000005],[-3365958.9970999993,5949046.887499999],[-3374423.0286,5922950.1522],[-3365009.0489000008,5912452.8967],[-3361627.7445,5890083.285800001],[-3388813.2271,5870850.3727],[-3401495.2431000005,5875727.674900001],[-3413558.0895000007,5894310.967599999],[-3456980.542199999,5928233.4585],[-3444009.6207,5947232.4143],[-3422591.1151,5956445.214299999],[-3457357.5869999994,5988804.124399999],[-3519383.4937999994,6018986.7743],[-3575583.3340000007,6038636.3452],[-3631825.7534,6054134.7258],[-3664258.9679000005,6067095.9047],[-3674133.723200001,6061295.671800001],[-3658709.878900001,6013887.127],[-3640790.3428000007,5992501.469699999],[-3653487.5830000006,5987465.577099999],[-3662517.1186999995,5937938.724300001],[-3661924.512700001,5914332.9431],[-3618616.8352000006,5855730.271199999],[-3582962.2589,5838914.033500001],[-3549571.0341,5811235.6164],[-3541590.4298,5784188.5319],[-3525726.798699999,5782255.638],[-3528106.2281,5763426.7513],[-3502007.7234000005,5767785.0263],[-3477187.5296,5764952.0847],[-3436821.706700001,5742922.5671],[-3422894.1415,5744931.761700001],[-3421837.568499999,5720703.6328],[-3440729.7453000005,5724432.595000001],[-3455816.7832999993,5737032.374500001],[-3455500.4756000005,5694084.7051],[-3471381.622199999,5657116.0943],[-3502686.8933000006,5652503.2312],[-3536338.2621,5675323.8783],[-3546773.7145000007,5706728.934599999],[-3581375.562000001,5688589.8729],[-3613845.3969,5690702.813100001],[-3623986.0286,5697678.205499999],[-3630664.2381999996,5724287.884099999],[-3657216.1108,5752016.3135],[-3676867.9864000008,5754831.305199999],[-3700763.776900001,5748709.4333999995],[-3717975.2775999997,5736791.642999999],[-3789571.844799999,5726619.248400001],[-3806668.0986,5717297.0956],[-3827395.0659,5718525.006100001],[-3852639.0544000007,5704755.865599999],[-3857212.7129999995,5671218.6041],[-3850813.7347,5657461.4289],[-3859214.0294000003,5643134.4953000005],[-3848279.7026000004,5619965.445499999],[-3856516.4103999995,5594339.739],[-3887375.8264000006,5596911.912799999],[-3880632.0449,5555993.954399999],[-3872046.625600001,5542645.665899999],[-3869239.8828999996,5475512.645300001],[-3843545.5810000002,5453328.956499999],[-3788020.397500001,5429828.333000001],[-3772689.5426000003,5433180.8632],[-3782558.7885,5370683.753699999],[-3811862.7326999996,5364859.7546999995],[-3820719.776799999,5329387.450300001],[-3828998.2815000005,5315342.6491],[-3857906.471000001,5307997.1042],[-3847305.3923000004,5289811.009500001],[-3810275.0009000003,5278873.908299999],[-3814079.1127000004,5266218.2917],[-3795437.2763,5254413.7554],[-3751946.7797,5273445.021600001],[-3753859.5776000004,5253891.460999999],[-3739886.923800001,5230730.0822],[-3725222.5766000003,5229781.545299999],[-3717743.0771999992,5209389.709899999],[-3721988.8761,5172290.624299999],[-3709296.3625000007,5158828.0901999995],[-3693429.8345,5160757.8456],[-3686394.0260000005,5184576.3563],[-3672918.2556,5182263.8157],[-3666958.9393000007,5154239.713300001],[-3657130.2095,5147885.2015],[-3605703.117900001,5135768.5013999995],[-3645635.9563999996,5116428.033600001],[-3702654.0710000005,5060110.9471],[-3735938.7786999997,5054756.274],[-3751099.5834,5057309.4582],[-3791376.6116000004,5046856.494100001],[-3818547.4209000003,5046673.1964],[-3874279.0253,5056766.132999999],[-3921751.9634000007,5057178.8552],[-3951962.3412999995,5043176.275900001],[-3979035.2619000003,5069127.6238],[-4020468.7807,5086453.6786],[-4058899.2523999996,5089342.306399999],[-4093863.3385000005,5083218.2455],[-4111828.982000001,5088192.556700001],[-4134251.0562999994,5084708.034],[-4161018.488500001,5089109.959000001],[-4175850.863500001,5102926.6741],[-4213321.672499999,5114288.351600001],[-4223813.223099999,5124567.1164],[-4254597.609999999,5114080.179],[-4268991.1328,5118713.9252],[-4280773.7423,5105117.2541000005],[-4279887.6357,5089514.291200001],[-4257800.215,5073220.085100001],[-4226691.161800001,5073572.9309],[-4202107.965299999,5050971.645099999],[-4161960.7525999993,5034979.5162],[-4143528.9706999995,5041601.6108],[-4122907.053099999,5032705.4279],[-4124516.4481000006,5016629.18],[-4113031.062999999,5006960.645199999],[-4099970.1160000004,5023952.714400001],[-4062374.5895000007,4998233.8409],[-4048313.8015,4997477.2282],[-4029806.8198000006,5008856.8883],[-4010868.901900001,5005513.0151],[-4025954.2585000005,4975038.170499999],[-4009719.3093,4962111.5931],[-4009469.271400001,4925715.8697999995],[-3987446.061899999,4930123.7213],[-3963094.009299999,4913297.3609],[-3962979.5373,4888863.860400001],[-3950680.2366000004,4885683.823000001],[-3940899.7326999996,4906205.9372000005],[-3948633.3003000002,4917990.192500001],[-3939815.6920999996,4933038.6993],[-3955974.5501000006,4951145.8288],[-3966696.963300001,4988149.977299999],[-3935430.9038999993,4990020.7313],[-3930963.3631999996,4957813.531400001],[-3893988.047700001,4963148.0887],[-3878059.157400001,4946283.782299999],[-3859277.8709999993,4951254.845000001],[-3815191.8412999995,4944109.194],[-3796085.6197999995,4972215.307],[-3727753.9043000005,4932486.6699],[-3723873.8817999996,4959577.468900001],[-3708110.2437999994,4964255.6493],[-3674366.0319999997,4951461.4539],[-3639451.9057,4974671.732000001],[-3604491.659,4969539.5156],[-3581376.5610000007,4976469.869999999],[-3567713.0888,4967749.361400001],[-3536721.7787999995,4978963.3323],[-3516865.029100001,4967176.557399999],[-3485789.6679999996,4961892.0801],[-3457453.8823000006,4973735.3978],[-3440718.792199999,4987116.3224],[-3425335.3374000005,4976520.166099999],[-3389741.8538000006,4991983.815099999],[-3390064.488399999,5014109.1800999995],[-3400229.045,5028594.1098],[-3423119.7119999994,5044692.763900001],[-3412264.9284000006,5055551.717599999],[-3385273.6992000006,5053013.5660999995],[-3364202.1240999997,5061817.8189],[-3333692.143100001,5051306.824999999],[-3322062.0406,5061311.7085],[-3305763.3112000003,5056861.375499999],[-3280191.1194,5077428.593800001],[-3251687.363,5082052.264699999],[-3250380.539999999,5092767.2226],[-3218850.7269,5095905.7895],[-3184475.9901,5106419.394400001],[-3164116.1844999995,5098548.4724],[-3150482.6887,5104517.656099999],[-3125271.7852,5099372.658500001],[-3124845.2256000005,5082181.7159],[-3172287.0408999994,5083424.167199999],[-3198562.8630999997,5088137.215500001],[-3203225.3907999992,5066704.4497],[-3225300.3366,5047398.431],[-3249990.101500001,5041739.580600001],[-3274321.4843000006,5025107.8127999995],[-3274015.6882000007,4993992.704600001],[-3292889.7585000005,4997280.7589],[-3307772.558700001,4988806.8104],[-3311026.867900001,4966067.4279],[-3287631.6162,4945174.178200001],[-3277896.0074000005,4952068.4693],[-3254956.776799999,4936445.5134],[-3224641.2006,4937954.6927000005],[-3219897.8659000006,4929488.7972],[-3193124.1977999993,4939416.554500001],[-3157806.8181999996,4924030.5681],[-3142739.4947999995,4940229.4014],[-3120859.1160000004,4940431.950300001],[-3097144.7359999996,4920526.5890999995],[-3078277.8925,4917479.720899999],[-3067822.1647999994,4903159.1985],[-3066097.0480000004,4883709.657400001],[-3029203.3807999995,4876242.2018],[-3018273.222100001,4890254.226500001],[-2987909.0853000004,4895185.955],[-2978695.6170000006,4902836.170299999],[-2989770.2643,4939560.3588],[-2958341.8397000004,4955027.2609],[-2954202.5237000007,4924408.472999999],[-2972049.329399999,4909096.3466],[-2971345.5865,4882766.2596],[-2933794.748299999,4877949.4669],[-2918229.0089,4860375.122300001],[-2885034.7815000005,4843282.2862],[-2885092.9630999994,4831157.9749],[-2865514.4771999996,4814512.4583],[-2869268.465399999,4800100.6862],[-2838736.0818000007,4777893.8126],[-2816596.7586000003,4772531.7751],[-2764926.1404999997,4749411.7535999995],[-2714318.4069999997,4708674.899499999],[-2697416.350299999,4708830.0174],[-2665303.8697999995,4727582.4037]]]]},"properties":{"Shape_Leng":18465341.3597,"Shape_Area":1532927875560,"FVSVariant":"AK","FVSVarName":"Southeast Alaska and Coastal British Columbia (SEAPROG)","FVSLocCode":1004,"FVSLocName":"Chugach National Forest"}}
 ]}
 ;
-
-// Display-only map data: variant polygons dissolved by FVS Variant, plus simplified state outlines.
-const FVS_VARIANT_DISPLAY_GEOJSON =
-{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"FVSVariant":"AK"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-4463657.8,5136238.7],[-4439840.5,5145211.1],[-4435606.8,5162115.5],[-4418337.2,5163396.2],[-4378604.9,5131042.4],[-4357989.0,5137633.0],[-4323858.1,5126418.9],[-4313093.4,5112860.4],[-4318023.2,5092373.2],[-4298930.4,5082447.0],[-4307181.3,5068126.7],[-4362686.1,5112088.7],[-4397718.0,5096458.3],[-4450413.5,5102937.5],[-4467385.1,5117000.0],[-4508790.4,5127729.8],[-4515459.8,5149989.2],[-4535766.8,5156762.9],[-4556284.9,5145261.4],[-4619569.3,5165871.5],[-4619117.1,5177424.4],[-4588205.8,5174178.9],[-4567650.8,5185683.1],[-4517562.2,5187468.4],[-4498273.2,5181380.9],[-4486502.9,5164011.5],[-4488759.3,5147197.0],[-4463657.8,5136238.7]]],[[[-4673172.5,5218079.1],[-4648028.3,5229786.8],[-4635037.3,5212550.8],[-4649426.9,5201551.6],[-4665064.4,5204154.8],[-4673172.5,5218079.1]]],[[[-4811336.8,5309145.3],[-4800101.7,5302989.7],[-4803188.0,5284733.6],[-4824369.8,5291616.6],[-4811336.8,5309145.3]]],[[[-4985632.5,5433962.1],[-4938814.0,5405099.9],[-4891169.1,5401154.1],[-4878989.5,5379109.9],[-4891632.7,5361483.5],[-4849217.1,5307786.1],[-4860368.4,5301034.3],[-4892467.5,5328322.5],[-4922545.9,5373281.7],[-4950939.2,5388505.7],[-4979721.6,5421193.9],[-5073969.4,5463861.2],[-5090259.3,5482713.8],[-5069778.0,5495273.0],[-5038758.8,5493806.9],[-5024184.0,5463700.2],[-5007764.3,5478806.2],[-4985632.5,5433962.1]]],[[[-5084911.4,5491745.6],[-5135114.3,5529462.3],[-5136437.9,5550087.3],[-5115544.8,5572161.9],[-5090147.8,5534947.6],[-5098848.9,5523941.2],[-5061141.0,5501551.2],[-5084911.4,5491745.6]]],[[[-5267395.8,5652873.3],[-5282879.4,5666731.3],[-5281452.5,5697787.1],[-5267690.4,5707462.9],[-5267395.8,5652873.3]]],[[[-5200599.4,5677592.4],[-5218997.1,5677432.7],[-5211413.5,5701721.5],[-5200599.4,5677592.4]]],[[[-5286284.0,5818842.7],[-5282706.7,5801971.8],[-5302045.0,5793791.2],[-5314575.1,5820728.2],[-5286284.0,5818842.7]]],[[[-5409741.7,6055872.5],[-5433340.1,6042841.5],[-5445149.2,6069816.3],[-5427086.3,6068586.6],[-5409741.7,6055872.5]]],[[[-5415012.2,6153096.0],[-5394107.8,6123270.8],[-5391858.2,6104346.7],[-5410799.4,6100464.9],[-5430232.6,6114211.7],[-5427960.1,6141142.9],[-5415012.2,6153096.0]]],[[[-2125921.4,3073800.0],[-2131789.4,3123417.9],[-2114023.9,3155454.9],[-2085372.2,3132184.6],[-2104746.9,3089260.5],[-2125921.4,3073800.0]]],[[[-2635417.0,4712597.5],[-2614839.5,4688120.3],[-2592124.0,4693976.1],[-2557262.6,4678782.5],[-2575741.1,4658326.6],[-2523279.6,4538687.0],[-2528561.3,4503636.8],[-2468262.2,4504480.3],[-2426164.6,4538246.9],[-2379312.5,4534847.7],[-2363179.7,4501935.5],[-2370791.8,4473958.8],[-2349244.3,4448200.9],[-2346716.8,4416835.4],[-2312720.5,4355137.5],[-2287336.0,4190381.8],[-2298691.8,4175672.7],[-2286062.4,4162990.3],[-2291761.9,4142136.6],[-2275739.6,4137416.5],[-2236162.5,4094497.6],[-2201476.6,4041064.7],[-2219496.7,4020770.8],[-2226446.4,3968705.5],[-2293558.1,3924943.8],[-2347411.3,3975540.9],[-2386172.6,3957370.8],[-2408775.8,3977950.6],[-2433596.6,3977838.1],[-2443835.8,4014379.0],[-2439928.5,4036015.1],[-2458690.8,4050562.8],[-2463768.1,4081795.1],[-2443005.8,4107788.4],[-2454444.4,4129362.3],[-2479841.7,4131338.2],[-2444949.2,4193809.5],[-2454235.5,4212655.1],[-2469974.3,4177298.0],[-2491518.6,4180633.4],[-2495966.5,4227936.1],[-2518319.9,4276089.4],[-2507525.0,4325195.6],[-2525814.6,4388239.7],[-2511873.4,4411771.2],[-2559108.0,4482117.9],[-2570846.7,4531760.9],[-2641649.8,4624409.7],[-2622219.6,4645450.5],[-2657572.3,4648870.2],[-2764926.1,4749411.8],[-2838736.1,4777893.8],[-2869268.5,4800100.7],[-2865514.5,4814512.5],[-2885093.0,4831158.0],[-2885034.8,4843282.3],[-2933794.7,4877949.5],[-2971345.6,4882766.3],[-2972049.3,4909096.3],[-2954202.5,4924408.5],[-2958341.8,4955027.3],[-2989770.3,4939560.4],[-2978695.6,4902836.2],[-3018273.2,4890254.2],[-3029203.4,4876242.2],[-3066097.0,4883709.7],[-3078277.9,4917479.7],[-3097144.7,4920526.6],[-3120859.1,4940432.0],[-3142739.5,4940229.4],[-3157806.8,4924030.6],[-3193124.2,4939416.6],[-3219897.9,4929488.8],[-3224641.2,4937954.7],[-3254956.8,4936445.5],[-3277896.0,4952068.5],[-3287631.6,4945174.2],[-3311026.9,4966067.4],[-3307772.6,4988806.8],[-3292889.8,4997280.8],[-3274015.7,4993992.7],[-3274321.5,5025107.8],[-3225300.3,5047398.4],[-3203225.4,5066704.4],[-3198562.9,5088137.2],[-3124845.2,5082181.7],[-3125271.8,5099372.7],[-3184476.0,5106419.4],[-3250380.5,5092767.2],[-3251687.4,5082052.3],[-3333692.1,5051306.8],[-3364202.1,5061817.8],[-3385273.7,5053013.6],[-3412264.9,5055551.7],[-3423119.7,5044692.8],[-3390064.5,5014109.2],[-3389741.9,4991983.8],[-3425335.3,4976520.2],[-3440718.8,4987116.3],[-3485789.7,4961892.1],[-3536721.8,4978963.3],[-3567713.1,4967749.4],[-3581376.6,4976469.9],[-3604491.7,4969539.5],[-3639451.9,4974671.7],[-3674366.0,4951461.5],[-3708110.2,4964255.6],[-3723873.9,4959577.5],[-3727753.9,4932486.7],[-3796085.6,4972215.3],[-3815191.8,4944109.2],[-3878059.2,4946283.8],[-3893988.0,4963148.1],[-3930963.4,4957813.5],[-3935430.9,4990020.7],[-3966697.0,4988150.0],[-3955974.6,4951145.8],[-3939815.7,4933038.7],[-3950680.2,4885683.8],[-3962979.5,4888863.9],[-3963094.0,4913297.4],[-3987446.1,4930123.7],[-4009469.3,4925715.9],[-4009719.3,4962111.6],[-4025954.3,4975038.2],[-4010868.9,5005513.0],[-4062374.6,4998233.8],[-4099970.1,5023952.7],[-4113031.1,5006960.6],[-4124516.4,5016629.2],[-4122907.1,5032705.4],[-4143529.0,5041601.6],[-4161960.8,5034979.5],[-4202108.0,5050971.6],[-4226691.2,5073572.9],[-4257800.2,5073220.1],[-4279887.6,5089514.3],[-4280773.7,5105117.3],[-4268991.1,5118713.9],[-4254597.6,5114080.2],[-4223813.2,5124567.1],[-4161018.5,5089110.0],[-4020468.8,5086453.7],[-3979035.3,5069127.6],[-3951962.3,5043176.3],[-3921752.0,5057178.9],[-3791376.6,5046856.5],[-3702654.1,5060110.9],[-3645636.0,5116428.0],[-3605703.1,5135768.5],[-3666958.9,5154239.7],[-3672918.3,5182263.8],[-3686394.0,5184576.4],[-3693429.8,5160757.8],[-3709296.4,5158828.1],[-3721988.9,5172290.6],[-3717743.1,5209389.7],[-3725222.6,5229781.5],[-3739886.9,5230730.1],[-3753859.6,5253891.5],[-3751946.8,5273445.0],[-3795437.3,5254413.8],[-3814079.1,5266218.3],[-3810275.0,5278873.9],[-3847305.4,5289811.0],[-3857906.5,5307997.1],[-3828998.3,5315342.6],[-3811862.7,5364859.8],[-3782558.8,5370683.8],[-3772689.5,5433180.9],[-3788020.4,5429828.3],[-3843545.6,5453329.0],[-3869239.9,5475512.6],[-3872046.6,5542645.7],[-3887375.8,5596911.9],[-3856516.4,5594339.7],[-3848279.7,5619965.4],[-3859214.0,5643134.5],[-3850813.7,5657461.4],[-3852639.1,5704755.9],[-3827395.1,5718525.0],[-3717975.3,5736791.6],[-3676868.0,5754831.3],[-3657216.1,5752016.3],[-3613845.4,5690702.8],[-3581375.6,5688589.9],[-3546773.7,5706728.9],[-3536338.3,5675323.9],[-3502686.9,5652503.2],[-3471381.6,5657116.1],[-3455500.5,5694084.7],[-3455816.8,5737032.4],[-3421837.6,5720703.6],[-3422894.1,5744931.8],[-3436821.7,5742922.6],[-3477187.5,5764952.1],[-3528106.2,5763426.8],[-3525726.8,5782255.6],[-3541590.4,5784188.5],[-3549571.0,5811235.6],[-3618616.8,5855730.3],[-3661924.5,5914332.9],[-3653487.6,5987465.6],[-3640790.3,5992501.5],[-3658709.9,6013887.1],[-3674133.7,6061295.7],[-3664259.0,6067095.9],[-3575583.3,6038636.3],[-3457357.6,5988804.1],[-3422591.1,5956445.2],[-3444009.6,5947232.4],[-3456980.5,5928233.5],[-3388813.2,5870850.4],[-3361627.7,5890083.3],[-3374423.0,5922950.2],[-3365959.0,5949046.9],[-3402103.6,5989521.6],[-3392462.1,6042153.5],[-3449913.0,6191181.0],[-3428984.0,6180322.2],[-3395178.2,6202490.0],[-3315550.4,6136735.2],[-3278531.1,6125745.3],[-3255271.3,6126750.4],[-3222804.2,6149757.6],[-3172253.8,6151139.7],[-3084119.7,6107155.4],[-3033805.5,6100867.3],[-2993691.9,6081319.8],[-2965447.0,6051691.9],[-2870092.4,6032839.9],[-2827175.4,5981385.6],[-2806139.0,5929690.7],[-2762895.6,5913273.0],[-2721129.7,5875531.6],[-2731421.5,5859855.6],[-2699128.3,5817906.8],[-2649018.8,5791152.5],[-2625629.6,5789489.4],[-2578746.6,5744622.0],[-2578117.2,5734268.7],[-2556601.9,5726130.4],[-2551467.8,5708607.0],[-2469100.8,5654620.0],[-2425350.2,5612659.2],[-2356398.8,5591889.4],[-2269741.2,5499614.9],[-2665303.9,4727582.4],[-2642828.0,4706427.8],[-2635417.0,4712597.5]]],[[[-3381449.6,4892304.7],[-3397289.2,4889353.4],[-3403185.8,4846215.0],[-3422003.6,4838393.5],[-3468701.9,4837156.8],[-3477938.3,4828381.9],[-3519288.3,4838983.4],[-3542321.0,4835057.4],[-3570520.8,4813644.2],[-3598322.0,4833770.7],[-3618821.0,4834608.2],[-3622269.5,4848789.4],[-3569753.1,4850147.7],[-3575948.2,4884151.9],[-3564232.4,4905610.7],[-3567640.1,4926028.5],[-3548177.6,4934060.1],[-3500095.2,4925995.4],[-3484122.5,4936126.4],[-3470246.5,4929425.2],[-3366402.4,4953574.3],[-3354703.6,4937368.1],[-3367051.6,4927468.3],[-3352330.0,4905506.1],[-3356452.3,4879636.3],[-3381449.6,4892304.7]]],[[[-4146317.2,4983252.7],[-4155637.3,4977698.3],[-4178604.2,4998002.8],[-4168421.1,5017224.0],[-4146317.2,4983252.7]]],[[[-4344658.1,5566343.4],[-4325012.0,5554761.6],[-4339328.9,5543061.1],[-4352952.4,5548780.8],[-4344658.1,5566343.4]]],[[[-3933739.8,5547611.1],[-3977292.4,5564890.5],[-4007637.7,5639006.3],[-3988926.6,5653542.0],[-3970280.0,5635226.3],[-3941697.3,5631149.6],[-3918623.0,5615491.5],[-3907443.3,5583849.1],[-3933739.8,5547611.1]]],[[[-4200070.3,5860943.9],[-4220383.6,5880315.5],[-4227316.4,5918351.7],[-4209637.2,5907976.2],[-4197202.3,5879476.5],[-4200070.3,5860943.9]]],[[[-3881704.9,5990931.4],[-3839968.4,5927224.1],[-3863123.5,5915798.7],[-3875249.3,5931183.3],[-3911710.8,5934457.3],[-3920310.9,5995395.3],[-3938757.9,6026941.3],[-3960116.6,6033158.1],[-3970700.2,6052980.9],[-3957416.7,6076192.9],[-3929213.3,6078968.3],[-3934006.4,6070082.6],[-3915800.5,6038170.8],[-3880711.7,6018624.2],[-3881704.9,5990931.4]]]]}},{"type":"Feature","properties":{"FVSVariant":"BM"},"geometry":{"type":"Polygon","coordinates":[[[-1762686.1,2544896.1],[-1793995.9,2542205.6],[-1801236.2,2517906.1],[-1848151.2,2534126.6],[-1852344.0,2514660.9],[-1896864.8,2535264.6],[-1887361.0,2557879.7],[-1874912.7,2566058.8],[-1869739.7,2588993.7],[-1906034.8,2598334.0],[-1911493.4,2577338.2],[-1943229.8,2586597.4],[-1947930.8,2631797.2],[-1960147.7,2635073.1],[-1946018.9,2683630.4],[-1942098.9,2668563.0],[-1926998.3,2657574.4],[-1877702.1,2667292.3],[-1871422.7,2690490.9],[-1838998.3,2686445.2],[-1815050.4,2698067.7],[-1783542.2,2693018.5],[-1748863.8,2698469.1],[-1738734.9,2705295.5],[-1723379.1,2734030.7],[-1707791.5,2739568.5],[-1700408.0,2755657.9],[-1664245.8,2787543.9],[-1633549.0,2775850.3],[-1626967.5,2759596.6],[-1638650.3,2730881.2],[-1610257.6,2742540.3],[-1602246.1,2712192.1],[-1590355.1,2705326.6],[-1584312.5,2685342.7],[-1629822.5,2622827.2],[-1652124.1,2608246.4],[-1687071.5,2630243.3],[-1707119.1,2586575.1],[-1739873.3,2579415.1],[-1762686.1,2544896.1]]]}},{"type":"Feature","properties":{"FVSVariant":"CA"},"geometry":{"type":"Polygon","coordinates":[[[-2056246.7,1839100.4],[-2015548.4,1757212.2],[-2012395.2,1716559.4],[-2006954.5,1710380.8],[-2010314.4,1660932.3],[-2035337.1,1653672.5],[-2034293.1,1624541.7],[-2024291.6,1602952.4],[-2039199.0,1590473.7],[-2046337.8,1568298.5],[-2062121.6,1566834.6],[-2092574.9,1576620.1],[-2136305.1,1669655.4],[-2197404.7,1727709.7],[-2236939.4,1821745.0],[-2222019.5,1832355.8],[-2218844.9,1848419.8],[-2232931.0,1889156.9],[-2255423.7,1924391.7],[-2249565.1,2102021.9],[-2267341.4,2153527.9],[-2251371.7,2178200.9],[-2248804.2,2218075.1],[-2272681.2,2261386.2],[-2273101.1,2298365.3],[-2249727.4,2345844.1],[-2249834.7,2355809.8],[-2237333.1,2360195.3],[-2220937.7,2383774.1],[-2217107.2,2425575.5],[-2219171.9,2432407.2],[-2245383.0,2427496.4],[-2267540.9,2446518.6],[-2251976.5,2471963.7],[-2240814.9,2525271.9],[-2227718.6,2548234.5],[-2196729.8,2555695.9],[-2158478.4,2553385.6],[-2151857.8,2527322.9],[-2170626.8,2516323.4],[-2164720.1,2502464.2],[-2178594.7,2476094.5],[-2178244.0,2451762.6],[-2160185.7,2431522.8],[-2152914.2,2394137.8],[-2171878.0,2359865.6],[-2166726.1,2343491.3],[-2145913.9,2317761.7],[-2115921.1,2319883.7],[-2101322.6,2303972.2],[-2102715.5,2290656.2],[-2091253.6,2280583.7],[-2095341.2,2250394.1],[-2103043.9,2240168.0],[-2084363.4,2226168.4],[-2073876.9,2205535.5],[-2111412.9,2176230.0],[-2142690.9,2171452.9],[-2143845.1,2157136.4],[-2138760.0,2140216.8],[-2133297.0,2139980.9],[-2132288.0,2112091.6],[-2124971.7,2099133.9],[-2125534.1,2071675.3],[-2108261.2,2018616.0],[-2113978.5,1985725.9],[-2108319.1,1976107.1],[-2111290.6,1962342.3],[-2092599.4,1929170.3],[-2093735.9,1908728.2],[-2073704.5,1865942.7],[-2057368.2,1855481.5],[-2050919.3,1841020.9],[-2056246.7,1839100.4]]]}},{"type":"Feature","properties":{"FVSVariant":"CI"},"geometry":{"type":"Polygon","coordinates":[[[-1339811.8,2471715.3],[-1325207.0,2456867.6],[-1333561.4,2408552.0],[-1319956.0,2406537.3],[-1323941.1,2384627.0],[-1291313.3,2378755.2],[-1287275.6,2370815.2],[-1312252.1,2341344.2],[-1381838.8,2312309.3],[-1432012.9,2310723.4],[-1449091.0,2297669.5],[-1520863.6,2296891.4],[-1589039.8,2273714.5],[-1715671.1,2301475.2],[-1671372.6,2498575.1],[-1652731.1,2533960.6],[-1672354.3,2561710.1],[-1649809.7,2600769.6],[-1609672.5,2651426.4],[-1584044.0,2645780.8],[-1578796.6,2660953.0],[-1537092.0,2658460.2],[-1517353.5,2644465.8],[-1489880.4,2660187.8],[-1462345.3,2634653.0],[-1437281.6,2649720.7],[-1425735.3,2634883.2],[-1389613.8,2654620.1],[-1381490.0,2642404.1],[-1383156.0,2620812.2],[-1373478.8,2587647.0],[-1365312.5,2578006.9],[-1369493.4,2556875.9],[-1344767.6,2536874.9],[-1339811.8,2471715.3]]]}},{"type":"Feature","properties":{"FVSVariant":"CR"},"geometry":{"type":"Polygon","coordinates":[[[-1423481.0,1030564.7],[-1746908.2,1220360.2],[-1733395.2,1243190.4],[-1856732.2,1257833.7],[-1872149.3,1297896.4],[-1867123.8,1318976.2],[-1872765.3,1339972.8],[-1847378.4,1333297.8],[-1850565.6,1365353.9],[-1865869.8,1390973.5],[-1884965.7,1408471.6],[-1876230.5,1418480.9],[-1852706.7,1404194.8],[-1834195.4,1379582.5],[-1826849.1,1387435.0],[-1845056.3,1420238.7],[-1858497.6,1425423.3],[-1856367.7,1452664.8],[-1899943.6,1466600.6],[-1939143.7,1469983.8],[-1963095.0,1487869.9],[-1981213.4,1492144.1],[-2001617.5,1518356.2],[-2049208.6,1549253.1],[-2021628.4,1562521.9],[-2005374.4,1561577.7],[-1974786.6,1581100.0],[-1966633.7,1614701.5],[-1945809.2,1625657.4],[-1942512.6,1655880.2],[-1924533.3,1659061.5],[-1915615.8,1644669.1],[-1894782.6,1639199.8],[-1892286.1,1703638.3],[-1873912.0,1689398.9],[-1876259.7,1652428.8],[-1854911.8,1648514.8],[-1847401.7,1683952.4],[-1854093.3,1711195.4],[-1869277.3,1712642.3],[-1872127.5,1753627.1],[-1858529.5,1755801.9],[-1848537.3,1728682.4],[-1832780.4,1726751.9],[-1675823.6,1491829.2],[-1666658.9,1508316.2],[-1668939.6,1547446.0],[-1662768.0,1612993.2],[-1627909.2,1612541.3],[-1611474.3,1595715.2],[-1598278.3,1612580.9],[-1581791.4,1701476.5],[-1146479.9,1629466.1],[-1063343.9,2247232.1],[-1066273.8,2267387.7],[-1091030.2,2301410.4],[-1107596.1,2346515.9],[-1126510.6,2371972.2],[-1120227.9,2393906.0],[-1106219.9,2395992.9],[-1092147.7,2418692.4],[-1095042.2,2438571.4],[-1114047.9,2461247.4],[-1119283.0,2477221.7],[-1089749.1,2491773.1],[-1098424.2,2527153.4],[-780429.1,2485816.8],[-633164.2,2472283.9],[-630335.6,2496083.7],[-546031.6,2489223.9],[-547376.4,2470270.6],[-472124.5,2465499.9],[-468807.1,2513064.1],[-133401.1,2498339.4],[-141760.5,2461538.3],[-140595.2,2425570.7],[-114025.9,2332302.5],[-109838.5,2300377.9],[-125506.5,2245202.5],[-159485.7,2187024.3],[-178795.6,2128502.2],[-168454.0,2048655.2],[-171336.0,2012757.9],[-199772.2,1954935.5],[-200271.9,1933373.4],[-189035.5,1916352.4],[-134744.6,1897895.2],[-117786.6,1879581.3],[-104077.1,1850133.6],[-92657.6,1787083.1],[-84685.3,1694016.3],[-90501.1,1529647.0],[-120326.6,1404375.9],[-132942.5,1321964.1],[-148322.8,1290601.1],[-259566.2,1147384.7],[-281183.8,1112513.6],[-288140.0,1051923.2],[-278219.0,991977.7],[-253325.7,971339.3],[-213706.7,972444.9],[-150833.2,987723.0],[-127022.1,969633.8],[-129995.1,916618.1],[-199736.5,747090.7],[-200171.5,727026.6],[-145893.1,658851.0],[-140005.1,584285.9],[-88156.8,543009.3],[-111544.9,508954.0],[-129111.8,466143.7],[-130122.2,420370.6],[-110266.5,325494.6],[-159992.5,322243.8],[-166155.5,332219.4],[-221950.5,336383.3],[-283699.1,372698.4],[-309907.5,376334.9],[-326975.3,426050.5],[-344007.1,446464.0],[-345637.5,497846.1],[-357126.9,515219.2],[-383059.2,533164.4],[-402607.1,572831.8],[-422337.9,588920.2],[-452154.7,658796.7],[-455329.2,680888.5],[-490676.1,722405.0],[-509670.6,732108.8],[-526905.4,760988.6],[-590616.6,765427.0],[-611737.2,775263.5],[-621349.2,765670.6],[-645056.2,763318.1],[-671011.4,711946.3],[-697433.8,681651.3],[-719665.3,688921.5],[-756033.3,718893.9],[-792070.8,736470.7],[-823095.0,766184.6],[-835896.8,798184.9],[-834301.7,827439.3],[-848614.7,852381.6],[-850536.0,872605.4],[-878374.0,901522.9],[-893901.4,908338.0],[-941743.4,970379.7],[-965423.7,986004.8],[-977574.8,1015384.3],[-990748.4,1022561.2],[-1148040.4,1041518.0],[-1154478.2,991812.8],[-1423481.0,1030564.7]]]}},{"type":"Feature","properties":{"FVSVariant":"CS"},"geometry":{"type":"Polygon","coordinates":[[[600036.4,1523919.4],[574760.5,1511950.2],[570978.6,1472516.7],[559470.7,1457259.3],[502011.0,1453107.8],[522890.9,1480800.2],[527323.1,1498246.5],[518671.9,1510471.8],[122674.0,1495570.5],[121838.6,1551519.4],[-88987.5,1551122.4],[-84685.3,1694016.3],[-92657.6,1787083.1],[-104077.1,1850133.6],[-117786.6,1879581.3],[-134744.6,1897895.2],[-189035.5,1916352.4],[-200271.9,1933373.4],[-199772.2,1954935.5],[-171336.0,2012757.9],[-168454.0,2048655.2],[-178795.6,2128502.2],[-159485.7,2187024.3],[-125506.5,2245202.5],[-113531.9,2279776.3],[142205.0,2279873.1],[384820.6,2288281.2],[386948.9,2271460.6],[399098.6,2261447.3],[390307.0,2247654.2],[402639.9,2203802.6],[430146.6,2194512.4],[437433.5,2180091.5],[732450.2,2200731.3],[724742.8,2117718.3],[921923.0,2138441.1],[960497.5,1807606.9],[906776.7,1792755.7],[909263.3,1781092.0],[894071.5,1747832.6],[877044.8,1733326.1],[873049.3,1709805.3],[852604.8,1708131.2],[834276.9,1719750.9],[809724.2,1692667.7],[799481.7,1700390.0],[779226.6,1688513.2],[772763.6,1674908.9],[745121.4,1690292.1],[724996.7,1675538.2],[710684.7,1679611.1],[684302.2,1652525.5],[692818.8,1632600.9],[659321.4,1620787.8],[665790.1,1594311.9],[653418.2,1585218.3],[620701.9,1599329.5],[600463.1,1578794.2],[605024.5,1570614.7],[600036.4,1523919.4]]]}},{"type":"Feature","properties":{"FVSVariant":"EC"},"geometry":{"type":"Polygon","coordinates":[[[-1723379.1,2734030.7],[-1738734.9,2705295.5],[-1748863.8,2698469.1],[-1783542.2,2693018.5],[-1815050.4,2698067.7],[-1838998.3,2686445.2],[-1871422.7,2690490.9],[-1877702.1,2667292.3],[-1926998.3,2657574.4],[-1942098.9,2668563.0],[-1946018.9,2683630.4],[-1968498.0,2688769.6],[-1987946.5,2667255.0],[-1996024.1,2682737.0],[-2016564.8,2684514.6],[-2002607.1,2707604.0],[-2004225.8,2733158.9],[-1986391.7,2750877.8],[-1996139.9,2776374.1],[-1981394.5,2792921.0],[-1974449.6,2792185.2],[-1949328.7,2824356.4],[-1945012.1,2858863.3],[-1923007.9,2893949.9],[-1927483.8,2917750.3],[-1906079.8,2939169.2],[-1907438.1,2970926.5],[-1872758.8,2997919.3],[-1870767.4,3025039.3],[-1848175.9,3042903.9],[-1855005.1,3061039.0],[-1832183.4,3082509.9],[-1837195.3,3110436.0],[-1831986.7,3130803.4],[-1588885.1,3069920.2],[-1621063.8,3055437.3],[-1643149.7,3023621.3],[-1644464.1,2998658.9],[-1656834.8,2979748.4],[-1668526.1,2977933.2],[-1672763.8,2957694.1],[-1650071.4,2948054.5],[-1664245.8,2787543.9],[-1700408.0,2755657.9],[-1707791.5,2739568.5],[-1723379.1,2734030.7]]]}},{"type":"Feature","properties":{"FVSVariant":"EM"},"geometry":{"type":"Polygon","coordinates":[[[-780429.1,2485816.8],[-1180518.5,2539572.9],[-1189292.1,2481523.8],[-1206273.4,2513056.5],[-1217528.4,2513157.3],[-1225152.3,2495682.7],[-1284351.2,2507999.5],[-1300686.6,2500769.7],[-1341369.3,2503251.6],[-1344767.6,2536874.9],[-1369493.4,2556875.9],[-1365312.5,2578006.9],[-1373478.8,2587647.0],[-1383156.0,2620812.2],[-1381490.0,2642404.1],[-1389613.8,2654620.1],[-1352426.3,2675213.9],[-1361984.6,2679919.1],[-1369970.6,2709266.0],[-1344021.5,2741405.8],[-1317974.2,2755956.9],[-1285205.9,2763404.3],[-1282579.4,2798701.8],[-1267842.0,2805972.1],[-1280185.7,2820007.4],[-1288581.7,2857204.3],[-1279273.2,2880672.1],[-1264319.8,2892914.6],[-1294552.7,2933112.4],[-1297268.0,2957412.7],[-1315669.0,2968211.9],[-1312939.3,2990560.5],[-1326037.7,2992513.2],[-1330269.2,3014909.8],[-1143375.8,2981343.5],[-773852.3,2930817.1],[-460279.6,2903124.1],[-160450.8,2890080.1],[-152404.5,2815932.9],[-115364.9,2660537.7],[-105311.5,2597006.4],[-113447.7,2555470.6],[-133401.1,2498339.4],[-468807.1,2513064.1],[-472124.5,2465499.9],[-547376.4,2470270.6],[-546031.6,2489223.9],[-630335.6,2496083.7],[-633164.2,2472283.9],[-780429.1,2485816.8]]]}},{"type":"Feature","properties":{"FVSVariant":"IE"},"geometry":{"type":"Polygon","coordinates":[[[-1361984.6,2679919.1],[-1352426.3,2675213.9],[-1425735.3,2634883.2],[-1437281.6,2649720.7],[-1462345.3,2634653.0],[-1489880.4,2660187.8],[-1517353.5,2644465.8],[-1537092.0,2658460.2],[-1578796.6,2660953.0],[-1584044.0,2645780.8],[-1609672.5,2651426.4],[-1584312.5,2685342.7],[-1590355.1,2705326.6],[-1602246.1,2712192.1],[-1610257.6,2742540.3],[-1638650.3,2730881.2],[-1626967.5,2759596.6],[-1633549.0,2775850.3],[-1664245.8,2787543.9],[-1650071.4,2948054.5],[-1672763.8,2957694.1],[-1668526.1,2977933.2],[-1656834.8,2979748.4],[-1644464.1,2998658.9],[-1643149.7,3023621.3],[-1621063.8,3055437.3],[-1588885.1,3069920.2],[-1330269.2,3014909.8],[-1326037.7,2992513.2],[-1312939.3,2990560.5],[-1315669.0,2968211.9],[-1297268.0,2957412.7],[-1294552.7,2933112.4],[-1264319.8,2892914.6],[-1279273.2,2880672.1],[-1288581.7,2857204.3],[-1280185.7,2820007.4],[-1267842.0,2805972.1],[-1282579.4,2798701.8],[-1285205.9,2763404.3],[-1317974.2,2755956.9],[-1344021.5,2741405.8],[-1364962.5,2718910.0],[-1369970.6,2709266.0],[-1361984.6,2679919.1]]]}},{"type":"Feature","properties":{"FVSVariant":"LS"},"geometry":{"type":"Polygon","coordinates":[[[1074191.4,2227233.0],[1052228.6,2208957.0],[1057576.8,2178191.4],[1036160.2,2149833.2],[922758.1,2131322.6],[921923.0,2138441.1],[724742.8,2117718.3],[732450.2,2200731.3],[437433.5,2180091.5],[430146.6,2194512.4],[402639.9,2203802.6],[390307.0,2247654.2],[399098.6,2261447.3],[386948.9,2271460.6],[384820.6,2288281.2],[142205.0,2279873.1],[-113531.9,2279776.3],[-109838.5,2300377.9],[-114025.9,2332302.5],[-134321.0,2393151.6],[-141760.5,2461538.3],[-105311.5,2597006.4],[-115364.9,2660537.7],[-152404.5,2815932.9],[-160450.8,2890080.1],[62699.2,2888380.8],[62351.7,2930681.3],[86609.4,2921071.4],[104760.5,2858129.2],[160640.8,2849305.8],[182474.4,2838769.8],[197633.4,2849937.6],[224649.3,2850425.6],[277688.1,2821383.2],[299391.6,2819879.3],[321989.2,2798068.5],[342873.5,2792177.7],[383178.0,2815581.3],[394895.8,2799518.6],[440455.6,2804065.0],[460938.6,2791480.5],[489855.0,2796476.4],[501104.5,2792896.2],[548358.9,2826347.4],[570807.9,2834820.8],[850720.6,2705309.8],[861371.1,2678186.8],[879396.6,2660964.2],[912875.9,2669949.3],[916753.2,2641060.5],[931040.6,2622286.7],[959847.2,2631478.1],[972003.2,2621096.4],[971435.3,2595601.3],[1052570.5,2557857.1],[1111693.5,2369983.4],[1095762.6,2292748.6],[1095264.6,2256454.3],[1074191.4,2227233.0]]]}},{"type":"Feature","properties":{"FVSVariant":"NC"},"geometry":{"type":"Polygon","coordinates":[[[-2232931.0,1889156.9],[-2218844.9,1848419.8],[-2222019.5,1832355.8],[-2236939.4,1821745.0],[-2208727.4,1757698.4],[-2221453.0,1766969.2],[-2239381.5,1736667.7],[-2183992.9,1636424.2],[-2209648.5,1628592.0],[-2226366.1,1648129.2],[-2228315.7,1669096.9],[-2269361.6,1766478.8],[-2281755.8,1784483.9],[-2272897.0,1854498.6],[-2293575.9,1878457.5],[-2296985.6,1930051.9],[-2289140.4,1961546.9],[-2308592.9,1988723.3],[-2321413.3,2047112.5],[-2353591.9,2109528.3],[-2346966.4,2124783.2],[-2348120.8,2159828.4],[-2336493.0,2181101.0],[-2336336.2,2212163.9],[-2345826.8,2244437.7],[-2360167.5,2265699.8],[-2360068.0,2290558.8],[-2317313.8,2345285.5],[-2319497.9,2356598.7],[-2298505.5,2393732.9],[-2299063.3,2512521.5],[-2287234.2,2524885.2],[-2299264.6,2548427.2],[-2273849.0,2579716.5],[-2246153.7,2576740.5],[-2246680.9,2563814.7],[-2227718.6,2548234.5],[-2240814.9,2525271.9],[-2251976.5,2471963.7],[-2267540.9,2446518.6],[-2245383.0,2427496.4],[-2219171.9,2432407.2],[-2217107.2,2425575.5],[-2220937.7,2383774.1],[-2237333.1,2360195.3],[-2249834.7,2355809.8],[-2249727.4,2345844.1],[-2273101.1,2298365.3],[-2272681.2,2261386.2],[-2248804.2,2218075.1],[-2251371.7,2178200.9],[-2267341.4,2153527.9],[-2249565.1,2102021.9],[-2255423.7,1924391.7],[-2232931.0,1889156.9]]]}},{"type":"Feature","properties":{"FVSVariant":"NE"},"geometry":{"type":"Polygon","coordinates":[[[1796972.2,1863706.9],[1758883.2,1851456.1],[1745795.1,1839214.2],[1723472.0,1839171.8],[1709553.8,1828665.5],[1682232.8,1838876.1],[1671484.5,1850581.4],[1648659.3,1848542.8],[1632115.5,1861186.9],[1614288.9,1859991.6],[1604106.2,1874178.1],[1622004.9,1905667.3],[1608008.7,1930822.0],[1571846.4,1944633.3],[1564920.4,1961488.4],[1551959.8,1960651.2],[1546811.3,1938125.7],[1496311.4,1966514.1],[1494378.9,1926420.8],[1474454.2,1913939.3],[1464028.4,1882543.9],[1450762.3,1877842.1],[1423731.7,1837460.5],[1403914.0,1850180.1],[1398207.1,1813151.9],[1388537.5,1800725.3],[1365045.5,1739144.9],[1373095.9,1735353.8],[1315922.3,1688190.3],[1285962.8,1682353.5],[1264573.7,1670166.9],[1237776.6,1675292.2],[1223707.8,1701555.8],[1192920.8,1713875.3],[1161411.2,1756016.2],[1155604.9,1791751.8],[1131155.1,1807987.6],[1124442.7,1825225.5],[1093464.2,1803133.0],[1072025.5,1812119.2],[1060496.9,1801951.6],[1042273.1,1814361.3],[1011438.2,1815951.8],[999941.7,1838328.0],[982108.8,1844845.0],[955652.7,1843010.6],[922758.1,2131322.6],[1036160.2,2149833.2],[1057576.8,2178191.4],[1062540.3,2168121.2],[1097169.6,2151709.1],[1120302.7,2155029.9],[1204832.8,2228807.6],[1296193.7,2263816.2],[1375096.6,2324167.7],[1360371.8,2373507.5],[1346306.3,2392305.6],[1383214.8,2419909.3],[1534122.7,2448687.6],[1550120.0,2504925.1],[1587905.7,2547996.8],[1622697.1,2607026.8],[1642700.6,2626355.1],[1907447.0,2694440.3],[1910404.5,2721932.7],[1928854.5,2726841.8],[1949111.4,2753375.6],[1974400.5,2811390.2],[1964661.0,2844783.7],[1975159.7,2874386.4],[1971221.3,2905343.6],[2004750.6,3002840.5],[2020126.0,3001254.3],[2036713.2,2979979.5],[2080119.4,3013034.9],[2121739.9,2992368.2],[2165819.0,2844749.9],[2198547.6,2839947.0],[2203413.0,2809528.8],[2218522.4,2796716.0],[2230953.3,2804900.8],[2256608.6,2774105.7],[2244403.4,2738297.2],[2225391.4,2714003.9],[2207518.4,2707793.6],[2187068.4,2686815.5],[2187920.0,2670867.8],[2170270.3,2657210.2],[2150393.8,2614385.2],[2128918.7,2622420.6],[2114987.0,2600815.4],[2073813.8,2582013.9],[2054223.2,2562318.0],[2035879.0,2518614.8],[2047364.2,2511476.5],[2037387.3,2486749.4],[2035332.5,2464391.3],[2048588.9,2445657.2],[2049387.3,2416641.6],[2060018.6,2403255.6],[2109204.0,2409329.6],[2128467.7,2384955.9],[2131345.3,2350323.9],[2111672.9,2354951.9],[2090037.3,2338132.5],[2142897.2,2320398.3],[2128046.9,2311925.1],[2106675.2,2316015.6],[2078848.0,2310346.0],[2040159.5,2313603.0],[1993124.8,2274852.8],[1994288.2,2255116.7],[1956157.2,2223089.5],[1890225.0,2175836.0],[1850291.9,2164186.2],[1841635.1,2156690.7],[1848384.1,2073511.0],[1837878.0,2033335.4],[1824672.2,2016310.6],[1810581.5,1975508.4],[1791133.4,1949785.1],[1802679.1,1904475.1],[1796972.2,1863706.9]]]}},{"type":"Feature","properties":{"FVSVariant":"PN"},"geometry":{"type":"Polygon","coordinates":[[[-2196729.8,2555695.9],[-2227718.6,2548234.5],[-2246680.9,2563814.7],[-2246153.7,2576740.5],[-2273849.0,2579716.5],[-2229890.7,2647017.8],[-2172271.3,2784306.8],[-2150985.5,2843782.9],[-2149760.1,2869638.8],[-2141056.5,2875772.7],[-2144154.0,2905848.4],[-2131153.5,2941519.2],[-2122925.5,3013655.5],[-2125921.4,3073800.0],[-2104746.9,3089260.5],[-2097013.2,3118018.0],[-2085372.2,3132184.6],[-2036458.3,3100127.0],[-2013512.1,3100160.5],[-1999618.7,3111991.7],[-2005612.6,3130514.8],[-2000739.7,3147605.1],[-1979342.2,3152863.8],[-1996400.5,3177417.4],[-1923694.1,3156400.4],[-1932463.3,3124054.5],[-1929154.6,3062957.2],[-1919073.0,3034755.9],[-1927305.8,2992593.6],[-1964870.1,2943383.7],[-1963078.5,2930942.6],[-2012489.5,2919981.3],[-2010198.9,2901153.1],[-2028200.3,2859939.9],[-2025684.2,2787965.0],[-2039628.7,2756180.2],[-2072000.3,2733409.9],[-2075497.7,2714755.8],[-2089755.6,2705802.9],[-2094535.4,2673821.5],[-2113188.9,2672539.0],[-2123349.8,2657554.7],[-2117317.1,2644037.8],[-2154549.9,2583610.2],[-2158478.4,2553385.6],[-2196729.8,2555695.9]]]}},{"type":"Feature","properties":{"FVSVariant":"SN"},"geometry":{"type":"Polygon","coordinates":[[[-17893.8,597925.1],[-88156.8,543009.3],[-140005.1,584285.9],[-145893.1,658851.0],[-200171.5,727026.6],[-199736.5,747090.7],[-129995.1,916618.1],[-127022.1,969633.8],[-150833.2,987723.0],[-213706.7,972444.9],[-253325.7,971339.3],[-278219.0,991977.7],[-288140.0,1051923.2],[-281183.8,1112513.6],[-259566.2,1147384.7],[-148322.8,1290601.1],[-132942.5,1321964.1],[-88987.5,1551122.4],[121838.6,1551519.4],[122674.0,1495570.5],[518671.9,1510471.8],[527323.1,1498246.5],[522890.9,1480800.2],[502011.0,1453107.8],[559470.7,1457259.3],[570978.6,1472516.7],[574760.5,1511950.2],[600036.4,1523919.4],[605024.5,1570614.7],[600463.1,1578794.2],[620701.9,1599329.5],[653418.2,1585218.3],[665790.1,1594311.9],[659321.4,1620787.8],[692818.8,1632600.9],[684302.2,1652525.5],[710684.7,1679611.1],[724996.7,1675538.2],[745121.4,1690292.1],[772763.6,1674908.9],[779226.6,1688513.2],[799481.7,1700390.0],[809724.2,1692667.7],[834276.9,1719750.9],[852604.8,1708131.2],[873049.3,1709805.3],[877044.8,1733326.1],[894071.5,1747832.6],[909263.3,1781092.0],[906776.7,1792755.7],[960497.5,1807606.9],[955652.7,1843010.6],[982108.8,1844845.0],[999941.7,1838328.0],[1011438.2,1815951.8],[1042273.1,1814361.3],[1060496.9,1801951.6],[1072025.5,1812119.2],[1093464.2,1803133.0],[1124442.7,1825225.5],[1131155.1,1807987.6],[1155604.9,1791751.8],[1161411.2,1756016.2],[1192920.8,1713875.3],[1223707.8,1701555.8],[1237776.6,1675292.2],[1264573.7,1670166.9],[1285962.8,1682353.5],[1315922.3,1688190.3],[1373095.9,1735353.8],[1365045.5,1739144.9],[1388537.5,1800725.3],[1398207.1,1813151.9],[1403914.0,1850180.1],[1423731.7,1837460.5],[1450762.3,1877842.1],[1464028.4,1882543.9],[1474454.2,1913939.3],[1494378.9,1926420.8],[1496311.4,1966514.1],[1546811.3,1938125.7],[1551959.8,1960651.2],[1564920.4,1961488.4],[1571846.4,1944633.3],[1608008.7,1930822.0],[1622004.9,1905667.3],[1604106.2,1874178.1],[1614288.9,1859991.6],[1632115.5,1861186.9],[1648659.3,1848542.8],[1671484.5,1850581.4],[1682232.8,1838876.1],[1709553.8,1828665.5],[1723472.0,1839171.8],[1745795.1,1839214.2],[1758883.2,1851456.1],[1796972.2,1863706.9],[1780675.6,1836360.6],[1758023.4,1729996.8],[1798726.7,1649348.8],[1828811.4,1609030.1],[1835765.1,1592970.0],[1838645.5,1548739.2],[1794721.6,1516719.9],[1770347.3,1478479.1],[1763774.1,1457744.7],[1732451.5,1462324.3],[1706530.8,1450204.5],[1675925.8,1421226.2],[1657280.9,1388275.0],[1652811.0,1356616.3],[1619845.5,1351295.2],[1576909.0,1325669.0],[1558158.2,1293748.1],[1558852.2,1260090.2],[1489089.6,1179807.0],[1466348.4,1166285.3],[1456086.8,1142860.5],[1427271.9,1110263.5],[1405596.2,1067889.0],[1392142.2,1005695.8],[1388587.8,961368.8],[1394554.4,956222.7],[1403155.3,911131.1],[1426133.0,854134.8],[1463609.0,791025.0],[1510134.2,738422.8],[1518107.0,722348.9],[1514136.1,701308.0],[1521907.4,680883.9],[1596539.1,550623.1],[1606245.3,444976.9],[1598813.0,370560.1],[1582178.9,343852.5],[1527751.6,299208.3],[1485903.8,283065.8],[1463858.3,266024.6],[1440487.8,259157.7],[1428992.2,280459.4],[1487744.7,319677.5],[1533102.8,319951.1],[1498798.8,360469.1],[1498658.3,379989.1],[1480632.1,402246.2],[1453611.7,417304.2],[1440872.0,413491.8],[1423240.0,440787.2],[1413308.5,469131.2],[1378106.7,480143.1],[1362840.0,514163.9],[1304399.4,587381.4],[1302703.0,606461.2],[1291353.6,619335.2],[1285097.0,659441.9],[1292949.9,666405.3],[1296755.9,704483.3],[1276383.2,751909.4],[1249174.5,751218.7],[1236542.0,775859.1],[1213688.1,792334.6],[1210345.8,806425.1],[1190153.8,824327.0],[1151681.4,843901.3],[1129543.2,838837.6],[1087646.6,795791.7],[1060747.9,779537.8],[1020730.6,789587.8],[1010553.3,815442.5],[964867.4,841704.8],[920297.7,852027.5],[896346.1,851954.2],[761600.6,817481.4],[682241.3,813737.3],[697981.7,786912.2],[693425.8,763952.1],[665790.2,724828.5],[685778.6,712109.8],[688284.0,697139.4],[669900.9,673858.3],[621349.9,701424.2],[580820.6,691727.5],[545075.9,674053.3],[486511.0,674289.1],[486233.0,684596.8],[455336.1,692822.0],[429722.5,707439.7],[403838.3,707264.3],[373397.2,725043.0],[359377.9,718878.4],[326345.3,722997.3],[278029.5,740988.8],[242936.5,741281.0],[215756.4,735390.7],[211669.4,727060.8],[190377.6,729748.1],[131054.4,701864.3],[129668.0,690567.2],[89047.1,666515.2],[63205.0,638586.7],[-17893.8,597925.1]],[[1163310.2,1405899.0],[1163310.6,1405899.0],[1163310.4,1405899.1],[1163310.2,1405899.0]]]}},{"type":"Feature","properties":{"FVSVariant":"SO"},"geometry":{"type":"Polygon","coordinates":[[[-2073876.9,2205535.5],[-2084363.4,2226168.4],[-2103043.9,2240168.0],[-2095341.2,2250394.1],[-2091253.6,2280583.7],[-2102715.5,2290656.2],[-2101322.6,2303972.2],[-2115921.1,2319883.7],[-2145913.9,2317761.7],[-2166726.1,2343491.3],[-2171878.0,2359865.6],[-2152914.2,2394137.8],[-2156287.6,2420357.3],[-2133662.3,2425145.0],[-2132705.3,2435791.3],[-2123853.5,2440868.8],[-2096806.6,2503533.7],[-2073286.2,2536631.6],[-2075469.1,2572042.3],[-2061330.3,2579133.8],[-2054344.9,2600954.8],[-2031827.6,2621567.7],[-2031064.6,2644481.3],[-2016564.8,2684514.6],[-1996024.1,2682737.0],[-1987946.5,2667255.0],[-1968498.0,2688769.6],[-1946018.9,2683630.4],[-1960147.7,2635073.1],[-1947930.8,2631797.2],[-1943229.8,2586597.4],[-1911493.4,2577338.2],[-1906034.8,2598334.0],[-1869739.7,2588993.7],[-1874912.7,2566058.8],[-1887361.0,2557879.7],[-1896864.8,2535264.6],[-1852344.0,2514660.9],[-1848151.2,2534126.6],[-1801236.2,2517906.1],[-1793995.9,2542205.6],[-1762686.1,2544896.1],[-1739873.3,2579415.1],[-1707119.1,2586575.1],[-1687071.5,2630243.3],[-1652124.1,2608246.4],[-1629822.5,2622827.2],[-1649809.7,2600769.6],[-1672354.3,2561710.1],[-1652731.1,2533960.6],[-1671372.6,2498575.1],[-1715671.1,2301475.2],[-1953555.9,2358291.1],[-2007421.4,2148905.6],[-2014303.3,2138327.4],[-2053509.6,2197017.6],[-2073876.9,2205535.5]]]}},{"type":"Feature","properties":{"FVSVariant":"TT"},"geometry":{"type":"Polygon","coordinates":[[[-1232641.6,2208874.7],[-1303915.9,2220257.5],[-1312254.6,2194674.3],[-1321867.0,2194076.4],[-1357931.7,2199821.5],[-1376713.9,2216469.6],[-1405064.8,2227908.6],[-1464362.8,2195424.7],[-1485219.8,2199483.5],[-1475457.8,2250687.3],[-1589039.8,2273714.5],[-1520863.6,2296891.4],[-1449091.0,2297669.5],[-1432012.9,2310723.4],[-1381838.8,2312309.3],[-1312252.1,2341344.2],[-1287275.6,2370815.2],[-1291313.3,2378755.2],[-1323941.1,2384627.0],[-1319956.0,2406537.3],[-1333561.4,2408552.0],[-1325207.0,2456867.6],[-1339811.8,2471715.3],[-1345157.3,2503940.8],[-1300686.6,2500769.7],[-1284351.2,2507999.5],[-1225152.3,2495682.7],[-1217528.4,2513157.3],[-1206273.4,2513056.5],[-1189292.1,2481523.8],[-1180518.5,2539572.9],[-1098424.2,2527153.4],[-1089749.1,2491773.1],[-1119283.0,2477221.7],[-1114047.9,2461247.4],[-1095042.2,2438571.4],[-1092147.7,2418692.4],[-1106219.9,2395992.9],[-1120227.9,2393906.0],[-1126510.6,2371972.2],[-1107596.1,2346515.9],[-1091030.2,2301410.4],[-1066273.8,2267387.7],[-1063343.9,2247232.1],[-1086198.5,2255193.5],[-1095775.6,2282516.6],[-1145374.8,2322521.2],[-1156467.0,2318799.4],[-1172608.3,2292414.8],[-1178500.5,2251010.7],[-1191013.1,2216932.3],[-1212337.5,2226944.0],[-1207858.0,2255454.1],[-1224802.0,2258166.1],[-1232641.6,2208874.7]]]}},{"type":"Feature","properties":{"FVSVariant":"UT"},"geometry":{"type":"Polygon","coordinates":[[[-1063343.9,2247232.1],[-1146479.9,1629466.1],[-1581791.4,1701476.5],[-1598278.3,1612580.9],[-1611474.3,1595715.2],[-1627909.2,1612541.3],[-1662768.0,1612993.2],[-1668939.6,1547446.0],[-1666658.9,1508316.2],[-1675823.6,1491829.2],[-1839893.9,1737446.4],[-1838933.5,1783186.5],[-1844465.3,1795484.8],[-1868224.7,1797977.7],[-1863485.8,1821389.0],[-1888570.9,1837714.9],[-1874837.5,1854402.4],[-1885955.5,1868628.1],[-1918773.6,1881536.4],[-1926621.4,1889817.7],[-1920969.5,1900762.3],[-1938557.5,1920343.6],[-1936792.9,1938557.0],[-1944855.3,1967823.9],[-1941229.0,1997240.7],[-1967409.9,2048023.1],[-1961952.5,2064343.7],[-1969086.3,2088733.0],[-1965662.4,2104485.6],[-1980051.4,2134609.5],[-2007421.4,2148905.6],[-1953555.9,2358291.1],[-1475457.8,2250687.3],[-1485219.8,2199483.5],[-1464362.8,2195424.7],[-1405064.8,2227908.6],[-1376713.9,2216469.6],[-1357931.7,2199821.5],[-1321867.0,2194076.4],[-1312254.6,2194674.3],[-1303915.9,2220257.5],[-1232641.6,2208874.7],[-1224802.0,2258166.1],[-1207858.0,2255454.1],[-1212337.5,2226944.0],[-1191013.1,2216932.3],[-1178500.5,2251010.7],[-1172608.3,2292414.8],[-1156467.0,2318799.4],[-1145374.8,2322521.2],[-1128464.7,2312824.5],[-1095775.6,2282516.6],[-1086198.5,2255193.5],[-1063343.9,2247232.1]]]}},{"type":"Feature","properties":{"FVSVariant":"WC"},"geometry":{"type":"Polygon","coordinates":[[[-2157239.9,2421023.6],[-2160331.2,2431796.9],[-2178244.0,2451762.6],[-2178594.7,2476094.5],[-2164720.1,2502464.2],[-2170626.8,2516323.4],[-2151857.8,2527322.9],[-2158478.4,2553385.6],[-2154549.9,2583610.2],[-2117317.1,2644037.8],[-2123349.8,2657554.7],[-2113188.9,2672539.0],[-2094535.4,2673821.5],[-2089755.6,2705802.9],[-2075497.7,2714755.8],[-2072000.3,2733409.9],[-2039628.7,2756180.2],[-2026383.6,2786112.5],[-2028200.3,2859939.9],[-2010198.9,2901153.1],[-2012489.5,2919981.3],[-1963078.5,2930942.6],[-1964870.1,2943383.7],[-1927305.8,2992593.6],[-1919073.0,3034755.9],[-1929154.6,3062957.2],[-1932463.3,3124054.5],[-1923694.1,3156400.4],[-1831986.7,3130803.4],[-1837195.3,3110436.0],[-1832183.4,3082509.9],[-1855005.1,3061039.0],[-1848175.9,3042903.9],[-1870767.4,3025039.3],[-1872758.8,2997919.3],[-1907438.1,2970926.5],[-1906079.8,2939169.2],[-1927483.8,2917750.3],[-1923007.9,2893949.9],[-1945012.1,2858863.3],[-1949328.7,2824356.4],[-1974449.6,2792185.2],[-1981394.5,2792921.0],[-1996139.9,2776374.1],[-1986391.7,2750877.8],[-2004225.8,2733158.9],[-2002607.1,2707604.0],[-2031064.6,2644481.3],[-2031827.6,2621567.7],[-2054344.9,2600954.8],[-2061330.3,2579133.8],[-2075469.1,2572042.3],[-2073286.2,2536631.6],[-2096806.6,2503533.7],[-2123853.5,2440868.8],[-2132705.3,2435791.3],[-2133662.3,2425145.0],[-2157239.9,2421023.6]]]}},{"type":"Feature","properties":{"FVSVariant":"WS"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-2154341.0,1475697.5],[-2192499.1,1477997.6],[-2204231.5,1495717.8],[-2204551.9,1511909.6],[-2198906.7,1502787.4],[-2165526.6,1502398.9],[-2144687.1,1490475.6],[-2154341.0,1475697.5]]],[[[-2092574.9,1576620.1],[-2062121.6,1566834.6],[-2046337.8,1568298.5],[-2039199.0,1590473.7],[-2024291.6,1602952.4],[-2034293.1,1624541.7],[-2035337.1,1653672.5],[-2010314.4,1660932.3],[-2006954.5,1710380.8],[-2012395.2,1716559.4],[-2015548.4,1757212.2],[-2028309.5,1781708.8],[-2025682.3,1786134.6],[-2040625.6,1804504.1],[-2047453.8,1828275.4],[-2056246.7,1839100.4],[-2050919.3,1841020.9],[-2057368.2,1855481.5],[-2073704.5,1865942.7],[-2093735.9,1908728.2],[-2092599.4,1929170.3],[-2111290.6,1962342.3],[-2108319.1,1976107.1],[-2113978.5,1985725.9],[-2108261.2,2018616.0],[-2125534.1,2071675.3],[-2124971.7,2099133.9],[-2132288.0,2112091.6],[-2133297.0,2139980.9],[-2138760.0,2140216.8],[-2143845.1,2157136.4],[-2142690.9,2171452.9],[-2111412.9,2176230.0],[-2073876.9,2205535.5],[-2053509.6,2197017.6],[-2014303.3,2138327.4],[-2007421.4,2148905.6],[-1980051.4,2134609.5],[-1965662.4,2104485.6],[-1969086.3,2088733.0],[-1961952.5,2064343.7],[-1967409.9,2048023.1],[-1941229.0,1997240.7],[-1944855.3,1967823.9],[-1936792.9,1938557.0],[-1938557.5,1920343.6],[-1920969.5,1900762.3],[-1926621.4,1889817.7],[-1918773.6,1881536.4],[-1885955.5,1868628.1],[-1874837.5,1854402.4],[-1888570.9,1837714.9],[-1863485.8,1821389.0],[-1868224.7,1797977.7],[-1844465.3,1795484.8],[-1838933.5,1783186.5],[-1839893.9,1737446.4],[-1832780.4,1726751.9],[-1848537.3,1728682.4],[-1858529.5,1755801.9],[-1872127.5,1753627.1],[-1869277.3,1712642.3],[-1854093.3,1711195.4],[-1847401.7,1683952.4],[-1854911.8,1648514.8],[-1876259.7,1652428.8],[-1873912.0,1689398.9],[-1892286.1,1703638.3],[-1894782.6,1639199.8],[-1915615.8,1644669.1],[-1924533.3,1659061.5],[-1942512.6,1655880.2],[-1945809.2,1625657.4],[-1966633.7,1614701.5],[-1974786.6,1581100.0],[-2005374.4,1561577.7],[-2021628.4,1562521.9],[-2049208.6,1549253.1],[-2001617.5,1518356.2],[-1981213.4,1492144.1],[-1963095.0,1487869.9],[-1939143.7,1469983.8],[-1899943.6,1466600.6],[-1856367.7,1452664.8],[-1858497.6,1425423.3],[-1845056.3,1420238.7],[-1826849.1,1387435.0],[-1834195.4,1379582.5],[-1852706.7,1404194.8],[-1876230.5,1418480.9],[-1884965.7,1408471.6],[-1865869.8,1390973.5],[-1850565.6,1365353.9],[-1847378.4,1333297.8],[-1872765.3,1339972.8],[-1867123.8,1318976.2],[-1872149.3,1297896.4],[-1856732.2,1257833.7],[-1964611.7,1270827.5],[-1971185.2,1290741.0],[-1966587.4,1333798.9],[-1974857.1,1357878.1],[-2018337.5,1417160.6],[-2038870.6,1418183.0],[-2049327.1,1457964.4],[-2074193.4,1459573.9],[-2106141.7,1480528.6],[-2111868.1,1502126.8],[-2130519.6,1521139.4],[-2142053.8,1521262.7],[-2169771.7,1537049.4],[-2206224.9,1544099.9],[-2224219.3,1569347.9],[-2216315.6,1582065.4],[-2216638.2,1605266.0],[-2209648.5,1628592.0],[-2183992.9,1636424.2],[-2239381.5,1736667.7],[-2221453.0,1766969.2],[-2208727.4,1757698.4],[-2197404.7,1727709.7],[-2136305.1,1669655.4],[-2092574.9,1576620.1]]],[[[-2062507.6,1407397.5],[-2043564.0,1393893.4],[-2044745.6,1373315.0],[-2062593.1,1381354.8],[-2062507.6,1407397.5]]]]}}]};
-
-const US_STATE_MAP_DATA =
-{"conus":[[[[1766935.8,2658543.3],[1641290.4,2625361.0],[1613830.2,2595844.6],[1584746.1,2543431.3],[1557529.5,2518422.8],[1534122.7,2448687.6],[1383214.8,2419909.3],[1346306.3,2392305.6],[1361680.3,2372860.4],[1363705.5,2353160.9],[1380707.4,2336040.0],[1375096.6,2324167.7],[1319502.2,2281624.6],[1329374.5,2224633.0],[1684697.0,2294535.6],[1696228.2,2281321.3],[1712308.4,2279422.2],[1717227.9,2256647.2],[1727791.4,2244569.2],[1748432.0,2243638.0],[1753971.8,2236456.5],[1828125.4,2212264.3],[1823818.7,2171471.0],[1812351.9,2166497.0],[1814422.5,2149150.5],[1890225.0,2175836.0],[1994288.2,2255116.7],[1993124.8,2274852.8],[1978426.7,2285643.3],[1852121.6,2212665.7],[1838897.8,2226741.9],[1855809.4,2243707.2],[1848122.9,2251371.6],[1830830.5,2338218.1],[1832786.7,2414589.9],[1813789.6,2500403.1],[1806558.1,2509333.1],[1797504.4,2503095.4],[1798958.6,2524033.8],[1784985.2,2552241.6],[1785671.4,2597996.2],[1773691.7,2615104.2],[1766935.8,2658543.3]]],[[[-1475434.7,2250700.3],[-1953549.9,2358336.3],[-2037521.8,2033530.9],[-1675823.6,1491829.2],[-1674609.6,1503353.8],[-1666149.6,1510947.5],[-1668939.6,1547446.0],[-1665198.2,1581432.1],[-1659421.2,1588063.4],[-1662768.0,1612993.2],[-1630916.7,1613628.0],[-1619575.0,1596384.1],[-1611474.3,1595715.2],[-1598278.3,1612580.9],[-1475434.7,2250700.3]]],[[[1897002.2,2428362.9],[1885801.9,2439993.4],[1890408.1,2459309.7],[1879976.3,2520422.8],[1892895.4,2583307.5],[1886433.6,2609443.9],[1902130.6,2617345.6],[1915942.3,2637746.7],[1916916.4,2647863.4],[1904971.7,2663892.0],[1909441.7,2694515.0],[1766673.0,2655804.3],[1773691.7,2615104.2],[1785671.4,2597996.2],[1784985.2,2552241.6],[1798958.6,2524033.8],[1797504.4,2503095.4],[1806558.1,2509333.1],[1813789.6,2500403.1],[1831865.5,2414384.6],[1897002.2,2428362.9]]],[[[1833460.1,2334640.3],[1848122.9,2251371.6],[1855809.4,2243707.2],[1838897.8,2226741.9],[1852121.6,2212665.7],[1985572.7,2291202.9],[1968680.6,2365559.1],[1892211.7,2347546.4],[1888376.9,2342133.3],[1887582.5,2346438.0],[1833460.1,2334640.3]]],[[[1791133.4,1949785.1],[1754244.1,1994700.8],[1729355.7,2012670.0],[1730725.4,2025777.3],[1725332.5,2031790.0],[1734064.6,2052796.2],[1711850.8,2050640.7],[1704048.3,2037741.3],[1741926.0,1901208.3],[1801840.0,1913472.9],[1791133.4,1949785.1]]],[[[-990710.9,1022640.2],[-999805.6,1032885.8],[-996505.8,1047566.8],[-663748.6,1016510.8],[-616769.6,1573506.0],[-900745.7,1598668.7],[-1146477.1,1629453.6],[-1233580.5,1002269.7],[-1154468.8,991809.1],[-1148047.4,1041530.1],[-990710.9,1022640.2]]],[[[1778295.0,1690175.6],[1452447.7,1625388.5],[1264834.1,1600104.7],[1266450.9,1571695.3],[1258148.2,1573073.8],[1249349.5,1565355.1],[1241265.0,1543602.5],[1224750.7,1545539.5],[1212945.1,1538855.4],[1197574.5,1518407.5],[1188857.4,1529830.0],[1176345.5,1512662.4],[1167645.7,1513221.2],[1162596.6,1493623.2],[1147326.6,1490064.4],[1120072.4,1463575.0],[1086684.3,1454246.5],[1075708.8,1439920.6],[1074562.8,1424463.7],[1054154.5,1416843.8],[1054576.2,1390381.4],[1163306.4,1405897.8],[1193782.8,1417631.4],[1223917.9,1438632.5],[1345541.3,1449423.8],[1347633.1,1438083.9],[1356064.7,1446520.4],[1372762.2,1429772.0],[1373438.3,1416730.9],[1474030.2,1431899.1],[1599481.4,1341756.4],[1630411.9,1353248.6],[1650962.2,1344783.1],[1657280.9,1388275.0],[1675925.8,1421226.2],[1706530.8,1450204.5],[1725060.1,1459569.5],[1743694.5,1464598.1],[1762842.6,1456758.5],[1794721.6,1516719.9],[1838112.7,1546966.6],[1832009.2,1602754.6],[1778295.0,1690175.6]]],[[[732450.2,2200731.3],[712891.7,2298352.7],[715722.5,2382893.5],[733513.7,2468449.7],[763706.2,2511156.0],[722100.4,2530212.6],[695081.8,2527694.7],[673791.7,2498677.9],[672169.1,2484509.4],[654724.7,2486511.4],[647556.3,2495796.4],[652415.9,2515469.3],[634621.6,2512275.7],[639261.8,2549762.6],[611665.1,2560985.3],[612659.3,2573623.0],[580458.7,2581809.2],[569020.8,2577661.0],[534319.4,2591653.5],[453486.3,2608283.8],[445014.3,2626004.4],[429051.8,2632245.8],[459365.5,2714498.4],[406282.2,2713387.1],[305362.1,2641319.3],[297775.7,2645949.1],[290869.3,2634728.9],[284674.6,2636269.5],[287090.9,2570713.2],[255388.2,2549256.2],[243857.3,2529517.3],[243241.5,2513703.0],[251878.0,2513185.5],[262269.6,2499466.6],[253828.6,2482106.1],[252196.7,2422307.0],[274151.3,2402555.6],[290924.3,2401339.2],[298919.8,2389994.8],[321056.8,2381253.9],[328564.6,2363814.3],[364223.2,2343227.8],[377561.5,2326632.2],[385813.4,2273278.1],[399098.6,2261447.3],[390347.2,2240270.5],[402639.9,2203802.6],[430146.6,2194512.4],[437276.1,2180102.7],[732450.2,2200731.3]]],[[[-1609581.7,2734191.7],[-1765872.3,2771462.0],[-1778138.0,2766828.0],[-1814216.2,2774365.9],[-1821157.2,2768953.0],[-1880820.6,2766311.4],[-1896938.2,2775879.8],[-1941071.2,2771658.3],[-1950970.6,2785721.4],[-1986479.1,2795730.8],[-2027838.3,2788541.3],[-2059413.0,2810711.1],[-2053777.3,2844207.8],[-2056689.2,2859239.9],[-2069268.3,2874650.7],[-2089454.4,2876102.7],[-2093600.9,2891538.6],[-2123724.1,2896609.9],[-2132975.8,2906846.0],[-2144154.0,2905848.4],[-2138858.3,2883459.7],[-2149760.1,2869638.8],[-2150985.5,2843782.9],[-2223352.8,2661664.9],[-2246910.5,2615912.9],[-2263932.1,2601244.7],[-2278953.0,2567366.7],[-2299971.7,2547048.8],[-2287234.2,2524885.2],[-2299791.5,2511060.4],[-2298817.0,2459945.4],[-2034726.1,2379568.3],[-1715663.8,2301508.5],[-1671308.9,2500922.8],[-1652304.9,2535804.1],[-1656763.0,2544927.1],[-1673426.3,2552462.9],[-1673716.6,2566368.7],[-1651642.4,2599128.3],[-1631565.5,2612931.8],[-1627978.6,2627428.1],[-1584626.1,2684020.5],[-1587499.0,2701661.4],[-1603540.7,2713480.3],[-1609581.7,2734191.7]]],[[[20403.4,1945930.6],[9305.1,1968968.0],[15896.6,1987299.1],[9873.2,2005085.9],[12713.8,2019530.1],[6053.7,2021059.9],[6012.4,2032406.4],[10682.9,2031848.1],[3559.6,2038131.1],[6633.8,2049663.5],[-1478.1,2053128.4],[2.8,2059384.2],[-7611.3,2058780.1],[-5435.4,2088385.1],[-13351.1,2100077.8],[-10962.0,2108117.2],[-19856.8,2110936.1],[-28453.5,2129384.7],[-31540.2,2164040.4],[-51116.8,2168512.6],[-56850.6,2184823.7],[-91953.9,2197723.5],[-101454.7,2207212.2],[-149920.3,2209379.5],[-163790.4,2197869.8],[-202588.1,2225204.7],[-652232.6,2250419.1],[-671177.6,2027603.7],[-504621.2,2015327.6],[-511746.5,1903622.0],[-230128.9,1890518.1],[58533.8,1887190.4],[49046.4,1892778.8],[43964.3,1914397.8],[28872.2,1921857.2],[29205.3,1947315.4],[20403.4,1945930.6]]],[[[1394554.4,956222.7],[1388587.8,961368.8],[1394027.5,984243.6],[1388791.4,994361.0],[1400381.8,1017215.5],[1397439.6,1034057.3],[1404895.1,1049800.8],[1404501.3,1070674.2],[1425012.3,1105664.1],[1391854.8,1114095.9],[1379315.9,1150927.6],[1355167.6,1166114.2],[1342012.4,1206678.6],[1316636.9,1218023.4],[1295502.1,1237699.5],[1294609.8,1251012.8],[1267216.9,1265893.7],[1252360.6,1285240.4],[1229416.6,1295967.1],[1193540.4,1348993.6],[1177813.6,1349505.3],[1145803.7,1369384.8],[1164315.5,1405052.7],[939223.1,1376504.4],[1004073.1,1144926.3],[1030117.5,1098761.0],[1027748.8,1087247.9],[1039180.3,1081674.6],[1024665.8,1065577.3],[1020950.1,1032263.6],[1034192.2,1000165.9],[1032533.3,960341.4],[1056640.3,914520.6],[1061559.4,910661.3],[1314886.9,928042.7],[1323245.9,905589.0],[1334891.3,908897.7],[1328540.9,950127.1],[1335719.3,960229.6],[1369987.7,953139.6],[1394554.4,956222.7]]],[[[1044769.3,941061.9],[1032533.3,960341.4],[1034192.2,1000165.9],[1020821.9,1034289.4],[1024665.8,1065577.3],[1039180.3,1081674.6],[1027748.8,1087247.9],[1030117.5,1098761.0],[1004073.1,1144926.3],[939223.1,1376504.4],[704900.9,1356632.2],[715454.5,1344503.0],[708032.0,1008009.6],[731815.6,816309.6],[752760.1,822644.3],[764381.2,817440.2],[814129.8,831204.3],[819851.0,840814.8],[814498.9,841776.2],[826497.8,855845.7],[818088.2,862888.7],[820387.1,881391.5],[796758.3,900734.8],[798890.8,915518.4],[1044769.3,941061.9]]],[[[-1232641.3,2208889.9],[-1475434.7,2250700.3],[-1581748.3,1701444.8],[-1146477.1,1629453.6],[-1085516.0,2073717.6],[-1250363.9,2097946.7],[-1232641.3,2208889.9]]],[[[1292651.2,2064061.0],[1261936.1,2250506.4],[1204832.8,2228807.6],[1120302.7,2155029.9],[1097169.6,2151709.1],[1062540.3,2168121.2],[1057576.8,2178191.4],[1036160.2,2149833.2],[922758.1,2131322.6],[955653.8,1843002.8],[961546.2,1848472.9],[973253.0,1841476.8],[986179.3,1848471.7],[1000724.0,1837426.9],[1011438.2,1815951.8],[1042396.7,1814298.8],[1060481.6,1801951.9],[1072015.0,1812114.2],[1091915.3,1803082.8],[1104645.2,1806963.3],[1124500.2,1825254.0],[1131754.8,1807244.1],[1144723.3,1804017.5],[1156656.8,1790559.6],[1176943.0,1796976.9],[1178813.3,1812474.0],[1188485.9,1818076.3],[1181524.2,1836859.5],[1193290.6,1865401.9],[1202760.4,1862706.2],[1206496.1,1850983.2],[1212121.2,1859124.7],[1218493.1,1858059.0],[1211354.3,1874421.7],[1216843.0,1877334.8],[1218760.8,1896665.1],[1228512.6,1898266.5],[1236032.1,1915546.6],[1243953.6,1909108.3],[1256543.1,1916277.4],[1280806.4,1946578.1],[1291759.0,2027462.3],[1281327.5,2055936.7],[1292651.2,2064061.0]]],[[[121838.6,1551519.4],[-202796.8,1552951.3],[-616769.6,1573506.0],[-620892.8,1517685.4],[-354932.7,1502176.7],[-364055.9,1285296.1],[-356981.2,1286579.5],[-337037.0,1263807.5],[-325485.7,1267864.0],[-311023.4,1262223.9],[-306132.2,1271341.7],[-292894.4,1257835.0],[-291623.9,1243830.5],[-273496.5,1244031.5],[-252401.4,1232577.3],[-238166.7,1236177.7],[-227772.0,1224952.3],[-216307.3,1235227.0],[-198556.0,1230012.9],[-193026.5,1234343.7],[-191107.5,1217395.7],[-178518.1,1215787.3],[-179717.0,1203279.3],[-168416.6,1200743.7],[-153254.5,1215380.1],[-145155.0,1204973.0],[-133884.1,1205039.5],[-131128.0,1195694.9],[-111305.0,1206288.2],[-109720.6,1188934.9],[-103396.6,1183970.8],[-90689.8,1210353.6],[-84186.4,1210754.0],[-79595.6,1198929.1],[-69989.3,1195635.2],[-61241.6,1205909.3],[-54370.8,1203469.4],[-57254.5,1197451.9],[-39560.0,1190332.3],[-31932.7,1179973.9],[-26702.3,1189409.5],[-18333.2,1187330.6],[-13711.8,1196782.7],[-268.6,1200850.3],[15583.7,1196528.2],[36931.9,1208611.2],[41934.4,1201723.5],[64828.3,1200999.2],[71858.9,1211098.8],[94713.0,1199947.6],[104811.2,1186769.8],[114224.6,1188518.1],[116279.9,1181371.7],[129994.3,1180885.8],[135690.3,1173104.7],[141287.3,1371965.2],[122661.6,1495566.9],[121838.6,1551519.4]]],[[[1089285.3,1576761.2],[720855.7,1540572.2],[701259.1,1543980.8],[704476.3,1523880.5],[593985.1,1516492.8],[579899.8,1509953.6],[572967.4,1513991.1],[575898.8,1497424.5],[567107.3,1493955.4],[575237.6,1486621.0],[560203.8,1483791.4],[570901.4,1474803.7],[559472.7,1457282.0],[568127.4,1444954.3],[559112.1,1447145.8],[556751.5,1442515.1],[564069.3,1437361.3],[541636.5,1425778.9],[544770.9,1417884.4],[551272.6,1418634.0],[542462.9,1410155.6],[547282.5,1401895.8],[536698.1,1405948.5],[539466.6,1391947.8],[535111.2,1387108.4],[529693.8,1396590.2],[523900.8,1385968.9],[532747.5,1386593.7],[525562.7,1374229.6],[534318.2,1368242.2],[535399.1,1358315.9],[527772.5,1357313.6],[523884.1,1345684.2],[516232.2,1346970.4],[514911.9,1341742.9],[830452.3,1366067.3],[1054576.2,1390381.4],[1054154.5,1416843.8],[1074562.8,1424463.7],[1075708.8,1439920.6],[1086684.3,1454246.5],[1120072.4,1463575.0],[1147326.6,1490064.4],[1162596.6,1493623.2],[1167645.7,1513221.2],[1176345.5,1512662.4],[1188857.4,1529830.0],[1197574.5,1518407.5],[1212945.1,1538855.4],[1224750.7,1545539.5],[1241265.0,1543602.5],[1249349.5,1565355.1],[1258148.2,1573073.8],[1266450.9,1571695.3],[1262154.9,1579809.2],[1267114.2,1603146.1],[1089285.3,1576761.2]]],[[[-1085516.0,2073717.6],[-671177.6,2027603.7],[-633765.6,2472338.8],[-870925.3,2496193.4],[-1180475.0,2539524.7],[-1250363.9,2097946.7],[-1085516.0,2073717.6]]],[[[2028366.3,2479926.5],[2005592.3,2471957.7],[1989568.3,2448927.1],[1832786.7,2414589.9],[1832682.4,2334464.0],[1887582.5,2346438.0],[1888376.9,2342133.3],[1892211.7,2347546.4],[2002164.8,2373808.2],[2011781.2,2350695.9],[2032315.3,2340339.2],[2042470.5,2316521.8],[2052635.5,2309979.0],[2059454.2,2313034.6],[2066584.1,2297988.9],[2087714.5,2313573.9],[2138872.2,2315393.0],[2142996.4,2325599.0],[2128937.6,2340549.9],[2122007.3,2338250.2],[2124060.2,2329848.4],[2100725.6,2325263.2],[2097719.0,2333205.6],[2086882.4,2336429.4],[2117844.4,2358204.3],[2118807.1,2343547.1],[2130049.5,2348560.3],[2128467.7,2384955.9],[2103848.5,2411540.2],[2056110.3,2406790.5],[2049387.3,2416641.6],[2053699.4,2459142.9],[2047369.0,2467683.9],[2034182.3,2464975.4],[2028366.3,2479926.5]]],[[[1089285.3,1576761.2],[1452447.7,1625388.5],[1778295.0,1690175.6],[1757857.3,1730158.5],[1758452.0,1743618.3],[1772719.2,1779692.7],[1778134.9,1830099.6],[1789372.8,1839376.8],[1796972.2,1863706.9],[1758883.2,1851456.1],[1745792.8,1839211.8],[1723472.0,1839171.8],[1709553.8,1828665.5],[1682232.8,1838876.1],[1671484.5,1850581.4],[1641351.0,1851256.3],[1629218.3,1870786.6],[1611720.4,1859550.0],[1604106.2,1874178.1],[1607608.3,1888478.6],[1622004.9,1905667.3],[1615928.1,1925144.6],[1573180.7,1941791.3],[1575999.2,1954365.0],[1564920.4,1961488.4],[1550820.5,1959351.2],[1546811.3,1938125.7],[1496311.4,1966514.1],[1497704.8,1932763.3],[1466665.2,1880894.0],[1453926.7,1887972.0],[1438540.0,1837249.6],[1421127.5,1837930.7],[1403867.2,1850195.0],[1398117.6,1812479.8],[1365423.2,1741347.3],[1373077.2,1735358.7],[1364973.5,1726795.7],[1368484.8,1721013.1],[1330279.9,1699305.6],[1321524.0,1704379.2],[1323859.1,1695381.1],[1315976.6,1688223.3],[1293246.8,1677809.0],[1279578.5,1687337.5],[1265145.5,1670473.7],[1254451.8,1668043.6],[1230060.7,1682428.5],[1223707.8,1701555.8],[1195035.3,1666753.5],[1165486.8,1646005.1],[1154784.0,1618193.1],[1138366.1,1611993.1],[1134605.9,1598834.5],[1089285.3,1576761.2]]],[[[384820.6,2288281.2],[-48235.7,2278738.2],[-42068.9,2266009.2],[-47372.3,2253418.9],[-35339.6,2236167.3],[-51298.1,2189938.9],[-41997.6,2181273.8],[-38980.4,2165919.3],[-31540.2,2164040.4],[-34196.8,2150293.1],[-19856.8,2110936.1],[-10962.0,2108117.2],[-13351.1,2100077.8],[-5354.7,2087607.5],[-7611.3,2058780.1],[2.8,2059384.2],[-1478.1,2053128.4],[6633.8,2049663.5],[3559.6,2038131.1],[10682.9,2031848.1],[6012.4,2032406.4],[6053.7,2021059.9],[12713.8,2019530.1],[9873.2,2005085.9],[15896.6,1987299.1],[9305.1,1968968.0],[19670.0,1952561.9],[161827.2,1952814.6],[358203.5,1963772.6],[380047.6,1938863.6],[389029.2,1940353.8],[385955.2,1958993.1],[408839.8,1972843.4],[410535.7,1989961.2],[421278.1,2005506.1],[420941.5,2020793.0],[406289.6,2036200.4],[410934.7,2056269.7],[442795.1,2063180.7],[467830.1,2078723.4],[469135.8,2095235.1],[479724.8,2104570.2],[481747.3,2126133.6],[478373.4,2139591.8],[459667.1,2149699.7],[454386.3,2164059.7],[436810.6,2176348.7],[431636.3,2193475.7],[402639.9,2203802.6],[390347.2,2240270.5],[399098.6,2261447.3],[385813.4,2273278.1],[384820.6,2288281.2]]],[[[-1146477.1,1629453.6],[-1581748.3,1701444.8],[-1598278.3,1612580.9],[-1610730.9,1596034.5],[-1619575.0,1596384.1],[-1630916.7,1613628.0],[-1662768.0,1612993.2],[-1659421.2,1588063.4],[-1665198.2,1581432.1],[-1668939.6,1547446.0],[-1666149.6,1510947.5],[-1674609.6,1503353.8],[-1678544.2,1476965.1],[-1667692.7,1457277.7],[-1665606.3,1427798.6],[-1649144.1,1412220.4],[-1646884.0,1401924.8],[-1675760.2,1389884.2],[-1690249.5,1373033.0],[-1697492.7,1331009.3],[-1711233.1,1318210.6],[-1718381.4,1318625.9],[-1721698.3,1307280.2],[-1717572.1,1301125.4],[-1724132.4,1283374.0],[-1707450.4,1272014.4],[-1707756.2,1252483.9],[-1716231.8,1243313.4],[-1731222.7,1245788.2],[-1743856.5,1233591.9],[-1746920.0,1220339.0],[-1423493.7,1030578.3],[-1233580.5,1002269.7],[-1146477.1,1629453.6]]],[[[139472.2,1175624.7],[116279.9,1181371.7],[113002.7,1188961.6],[104811.2,1186769.8],[94713.0,1199947.6],[71858.9,1211098.8],[64828.3,1200999.2],[41934.4,1201723.5],[36931.9,1208611.2],[15583.7,1196528.2],[-268.6,1200850.3],[-13711.8,1196782.7],[-18333.2,1187330.6],[-26702.3,1189409.5],[-31932.7,1179973.9],[-39560.0,1190332.3],[-57254.5,1197451.9],[-54370.8,1203469.4],[-61241.6,1205909.3],[-69989.3,1195635.2],[-79595.6,1198929.1],[-84186.4,1210754.0],[-90689.8,1210353.6],[-103396.6,1183970.8],[-109720.6,1188934.9],[-111305.0,1206288.2],[-131128.0,1195694.9],[-133884.1,1205039.5],[-145155.0,1204973.0],[-153254.5,1215380.1],[-168416.6,1200743.7],[-179717.0,1203279.3],[-178518.1,1215787.3],[-191107.5,1217395.7],[-193026.5,1234343.7],[-198556.0,1230012.9],[-216307.3,1235227.0],[-227772.0,1224952.3],[-238166.7,1236177.7],[-252401.4,1232577.3],[-273496.5,1244031.5],[-291623.9,1243830.5],[-292894.4,1257835.0],[-306132.2,1271341.7],[-311023.4,1262223.9],[-325485.7,1267864.0],[-337037.0,1263807.5],[-356981.2,1286579.5],[-364055.9,1285296.1],[-354932.7,1502176.7],[-624376.8,1517930.7],[-663748.6,1016510.8],[-996505.8,1047566.8],[-1000326.8,1036153.2],[-987573.5,1018329.3],[-977657.4,1015462.9],[-964586.9,984455.9],[-941846.2,970473.3],[-894815.4,907980.5],[-878374.0,901522.9],[-852411.7,876373.8],[-848614.7,852381.6],[-835575.1,833740.4],[-836347.9,800472.9],[-822543.6,765428.0],[-795198.7,746233.2],[-780198.6,727016.5],[-756033.3,718893.9],[-750486.8,709049.4],[-735021.4,704989.9],[-719665.3,688921.5],[-693890.1,682729.1],[-679759.2,703859.0],[-667543.1,707454.8],[-668187.3,721282.2],[-645056.2,763318.1],[-616653.1,764637.0],[-609606.3,776261.1],[-586274.1,764478.4],[-561519.8,765633.0],[-545564.1,758359.6],[-535064.6,763987.0],[-535119.9,758545.2],[-521617.1,758565.7],[-513708.6,736902.3],[-508091.0,741725.3],[-509163.4,730256.1],[-490676.1,722405.0],[-455329.2,680888.5],[-440612.4,631557.5],[-425224.6,612939.4],[-422286.6,588264.5],[-388095.5,553889.5],[-383059.2,533164.4],[-348281.2,506334.9],[-345475.0,496755.1],[-351972.2,479173.8],[-342645.5,471423.0],[-344007.1,446464.0],[-326975.3,426050.5],[-309907.5,376334.9],[-282488.8,372451.0],[-268687.7,357381.4],[-245839.0,354835.3],[-221329.4,336126.1],[-166225.7,332207.8],[-141082.9,310888.3],[-129628.0,324140.2],[-110137.6,324065.8],[-131642.2,450719.5],[-115591.0,501027.4],[-86429.0,545038.2],[-17893.8,597925.1],[65440.5,639755.8],[89047.1,666515.2],[131192.7,691790.1],[133469.5,703543.8],[190377.6,729748.1],[211669.4,727060.8],[200150.5,750436.8],[221552.5,778751.1],[220439.7,804223.5],[214473.1,809912.9],[220658.3,820774.0],[216492.2,832019.0],[233362.7,864005.3],[235711.9,876588.6],[230563.1,883403.8],[237123.4,887173.1],[231718.1,893846.4],[234209.1,904129.5],[229056.4,901823.2],[219717.6,916684.3],[223725.5,924578.1],[213026.1,935135.0],[216406.7,940189.7],[204641.9,948026.5],[205328.2,968909.4],[184056.1,993595.8],[180434.9,1166734.6],[167334.0,1171256.3],[148777.4,1165418.2],[139472.2,1175624.7]]],[[[-91046.7,2888860.7],[-340254.1,2896384.9],[-595590.9,2913447.4],[-623890.9,2577214.6],[-314082.5,2557107.2],[-43768.5,2549802.1],[-46286.2,2593670.3],[-61164.8,2627112.7],[-64354.4,2733286.6],[-86077.1,2794562.7],[-87415.3,2840933.6],[-82038.4,2853610.6],[-91046.7,2888860.7]]],[[[577735.0,1514267.3],[577671.9,1522302.2],[570763.8,1522415.3],[572967.4,1513991.1],[577735.0,1514267.3]]],[[[1089285.3,1576761.2],[1134605.9,1598834.5],[1138366.1,1611993.1],[1154784.0,1618193.1],[1165486.8,1646005.1],[1195035.3,1666753.5],[1223384.5,1702492.2],[1209416.1,1701007.5],[1171175.2,1738633.7],[1173397.9,1744871.0],[1155248.7,1762804.3],[1159711.2,1774525.2],[1154145.4,1795778.9],[1131754.8,1807244.1],[1126010.9,1824898.1],[1113516.2,1820260.5],[1104645.2,1806963.3],[1091915.3,1803082.8],[1072015.0,1812114.2],[1060481.6,1801951.9],[1042396.7,1814298.8],[1011438.2,1815951.8],[1000724.0,1837426.9],[986179.3,1848471.7],[973253.0,1841476.8],[961546.2,1848472.9],[949714.7,1836893.4],[956448.5,1828453.1],[953472.8,1820456.7],[961450.1,1818519.7],[960263.2,1807282.3],[945275.0,1804868.1],[930910.7,1793023.5],[921180.1,1797976.2],[907827.5,1794877.8],[911736.3,1773633.8],[897040.2,1761357.9],[891855.5,1744303.2],[879682.1,1740941.2],[874185.1,1711270.1],[865324.3,1703620.2],[844385.4,1712504.0],[842991.1,1721790.1],[834455.3,1727398.2],[838348.6,1720480.0],[826685.9,1717488.9],[825141.8,1696309.4],[814712.4,1685354.4],[813364.6,1692468.2],[805885.7,1690419.7],[797705.5,1701267.9],[779614.3,1689028.4],[774756.4,1674790.9],[748846.9,1689814.7],[738453.4,1685300.9],[731028.0,1692431.1],[727873.5,1675405.2],[723315.2,1683691.2],[711017.1,1679557.8],[703698.1,1684023.3],[704928.8,1671293.8],[694486.0,1669464.6],[684304.2,1652928.7],[692925.1,1632749.9],[659282.4,1620663.3],[656616.0,1608458.6],[665785.9,1594195.6],[663487.9,1585622.8],[620693.7,1599334.3],[607560.9,1591344.3],[600207.6,1576682.7],[608221.5,1567926.9],[602179.0,1553702.8],[608099.7,1547644.3],[601254.1,1543126.7],[605263.9,1535168.6],[600036.4,1523919.4],[587329.8,1529264.6],[583757.6,1514853.6],[704476.3,1523880.5],[701259.1,1543980.8],[720855.7,1540572.2],[1089285.3,1576761.2]]],[[[1551959.8,1960651.2],[1542542.5,1971922.1],[1544295.5,1979131.9],[1533207.8,1983234.6],[1535985.3,1990038.6],[1527151.1,1986054.6],[1505362.0,1994374.3],[1499870.8,1984625.4],[1486534.5,1982756.4],[1485064.6,1970162.6],[1465964.1,1969980.8],[1455644.1,1978604.4],[1445671.8,1954212.5],[1433796.9,1955761.0],[1405748.3,1920427.8],[1396620.8,1977444.8],[1309290.9,1962636.2],[1292651.2,2064061.0],[1284093.1,2060545.5],[1291759.0,2027462.3],[1280806.4,1946578.1],[1256543.1,1916277.4],[1243953.6,1909108.3],[1236032.1,1915546.6],[1228512.6,1898266.5],[1218760.8,1896665.1],[1216843.0,1877334.8],[1211354.3,1874421.7],[1218493.1,1858059.0],[1212121.2,1859124.7],[1206496.1,1850983.2],[1202760.4,1862706.2],[1193290.6,1865401.9],[1181524.2,1836859.5],[1188007.7,1816578.9],[1178813.3,1812474.0],[1176943.0,1796976.9],[1155604.9,1791751.8],[1156551.1,1759635.6],[1173397.9,1744871.0],[1171175.2,1738633.7],[1189991.9,1722386.8],[1193240.9,1712211.5],[1203994.9,1711084.3],[1209416.1,1701007.5],[1225662.4,1700573.5],[1222877.0,1692694.7],[1237776.6,1675292.2],[1254451.8,1668043.6],[1265145.5,1670473.7],[1279578.5,1687337.5],[1293246.8,1677809.0],[1315976.6,1688223.3],[1323859.1,1695381.1],[1321524.0,1704379.2],[1330279.9,1699305.6],[1368484.8,1721013.1],[1364973.5,1726795.7],[1373077.2,1735358.7],[1365423.2,1741347.3],[1398117.6,1812479.8],[1403867.2,1850195.0],[1421127.5,1837930.7],[1438540.0,1837249.6],[1453926.7,1887972.0],[1466665.2,1880894.0],[1497704.8,1932763.3],[1496311.4,1966514.1],[1546811.3,1938125.7],[1551959.8,1960651.2]]],[[[819851.0,840814.8],[815156.3,819707.1],[897940.8,840968.6],[945819.6,836517.5],[1003346.0,806362.4],[1020643.0,774457.7],[1038924.1,775441.1],[1058266.6,767857.4],[1093339.8,786004.8],[1116769.4,809427.5],[1132464.2,814114.8],[1139231.3,831692.7],[1148147.3,834917.7],[1175902.4,823011.2],[1199782.3,799438.9],[1206700.0,783036.9],[1225633.6,772119.5],[1244609.9,742361.6],[1269996.6,741883.9],[1286228.8,700663.8],[1283881.1,676051.0],[1273811.1,661201.6],[1281017.8,615292.8],[1292341.0,602206.1],[1296877.6,579813.6],[1352870.7,508424.9],[1369255.3,472476.8],[1387791.3,460581.8],[1404179.9,462550.7],[1425002.2,415145.9],[1438077.2,402438.0],[1456854.0,404052.0],[1474220.4,391806.9],[1486990.0,375932.6],[1495254.4,344255.3],[1509546.6,332941.2],[1477639.9,327474.7],[1439906.5,299323.7],[1409251.0,291973.9],[1398916.5,273409.7],[1410197.9,275054.2],[1416591.3,266407.7],[1426217.5,270775.4],[1440487.8,259157.7],[1453714.0,263157.4],[1456606.3,272265.8],[1465303.8,266528.8],[1480403.1,274767.4],[1481668.1,283663.7],[1527751.6,299208.3],[1582178.9,343852.5],[1608993.2,405573.4],[1596539.1,550623.1],[1521907.4,680883.9],[1514136.1,701308.0],[1518107.0,722348.9],[1510134.2,738422.8],[1463609.0,791025.0],[1426133.0,854134.8],[1393954.6,939348.9],[1394554.4,956222.7],[1369987.7,953139.6],[1335719.3,960229.6],[1328540.9,950127.1],[1334891.3,908897.7],[1323245.9,905589.0],[1314886.9,928042.7],[1061559.4,910661.3],[1044769.3,941061.9],[798890.8,915518.4],[796758.3,900734.8],[820387.1,881391.5],[818088.2,862888.7],[826497.8,855845.7],[814498.9,841776.2],[819851.0,840814.8]]],[[[1318717.1,267177.2],[1332056.5,252185.0],[1330476.7,263762.0],[1365361.4,268605.3],[1365975.4,276552.0],[1355740.5,288941.8],[1340559.0,288793.9],[1322913.4,279142.6],[1318717.1,267177.2]]],[[[694486.0,1669464.6],[687614.3,1680880.0],[694590.9,1679599.1],[689678.5,1683418.8],[694223.1,1688265.1],[690942.7,1696965.2],[701200.1,1710905.3],[694135.9,1720146.8],[706454.1,1725184.8],[731286.7,1778507.2],[727643.2,1802490.1],[713440.6,1821483.0],[719666.3,1830486.4],[715039.0,1840908.4],[722169.6,1846098.2],[698785.0,2115235.5],[724742.8,2117718.3],[732450.2,2200731.3],[437276.1,2180102.7],[454386.3,2164059.7],[459667.1,2149699.7],[479093.5,2138685.9],[481301.7,2115274.9],[479181.9,2103548.7],[469135.8,2095235.1],[467830.1,2078723.4],[442795.1,2063180.7],[410616.8,2055563.9],[406289.6,2036200.4],[420941.5,2020793.0],[420562.6,2001736.1],[410535.7,1989961.2],[408839.8,1972843.4],[385955.2,1958993.1],[389224.7,1941168.9],[378858.6,1922411.6],[393317.1,1866202.1],[450641.6,1815566.9],[461795.3,1775328.3],[468445.3,1774232.4],[476071.0,1785200.9],[505810.2,1773690.6],[487134.0,1714642.7],[488929.7,1702221.5],[511762.5,1681663.2],[528330.5,1675236.1],[527677.0,1665734.9],[535699.3,1669595.5],[566300.1,1646917.0],[567059.1,1630122.3],[576577.7,1614202.6],[568786.5,1602236.7],[583147.0,1575397.6],[592155.8,1570436.0],[588958.0,1579306.8],[593577.8,1579899.1],[600468.9,1569326.9],[605024.5,1570614.7],[601247.0,1580788.0],[617047.1,1599337.7],[663487.9,1585622.8],[665785.9,1594195.6],[656616.0,1608458.6],[659282.4,1620663.3],[692925.1,1632749.9],[684304.2,1652928.7],[694486.0,1669464.6]]],[[[489855.0,2796476.4],[458853.1,2791578.6],[440455.0,2804075.4],[394163.2,2799081.0],[383177.4,2815584.8],[356824.7,2796353.8],[333176.8,2790761.9],[333473.8,2797927.8],[321989.7,2798068.3],[321297.1,2807398.3],[302929.7,2810302.3],[295096.4,2823889.4],[279614.3,2822772.8],[279550.0,2811005.3],[271735.2,2808251.2],[264873.2,2828727.9],[245540.8,2833419.6],[251039.2,2842375.5],[226869.3,2851355.9],[204499.9,2851914.9],[189153.2,2845971.8],[188940.6,2840876.7],[164702.5,2836954.3],[160337.0,2849449.6],[101065.9,2860505.4],[87257.7,2924042.4],[77190.2,2929115.7],[62345.6,2930694.5],[62737.7,2888377.5],[-91046.7,2888860.7],[-82038.4,2853610.6],[-87415.3,2840933.6],[-86077.1,2794562.7],[-64354.4,2733286.6],[-61164.8,2627112.7],[-46286.2,2593670.3],[-42954.9,2566328.5],[-45354.4,2537018.3],[-66862.0,2513337.8],[-54569.2,2492801.5],[-35518.7,2479260.3],[-36488.2,2278665.8],[384820.6,2288281.2],[381165.6,2318725.4],[365125.4,2342407.1],[328564.6,2363814.3],[320212.6,2381892.3],[298919.8,2389994.8],[290924.3,2401339.2],[274151.3,2402555.6],[252196.7,2422307.0],[253828.6,2482106.1],[262269.6,2499466.6],[251878.0,2513185.5],[243241.5,2513703.0],[243857.3,2529517.3],[255388.2,2549256.2],[287090.9,2570713.2],[284674.6,2636269.5],[290869.3,2634728.9],[297775.7,2645949.1],[305362.1,2641319.3],[406282.2,2713387.1],[459365.5,2714498.4],[489855.0,2796476.4]]],[[[1573180.7,1941791.3],[1620020.6,1920340.1],[1622004.9,1905667.3],[1604422.7,1876704.4],[1611720.4,1859550.0],[1629218.3,1870786.6],[1641351.0,1851256.3],[1671484.5,1850581.4],[1682232.8,1838876.1],[1709553.8,1828665.5],[1723472.0,1839171.8],[1745792.8,1839211.8],[1758883.2,1851456.1],[1796972.2,1863706.9],[1801840.0,1913472.9],[1741926.0,1901208.3],[1704048.3,2037741.3],[1396620.8,1977444.8],[1405748.3,1920427.8],[1433796.9,1955761.0],[1445671.8,1954212.5],[1455644.1,1978604.4],[1465964.1,1969980.8],[1485064.6,1970162.6],[1486534.5,1982756.4],[1499870.8,1984625.4],[1506217.0,1994573.8],[1521962.4,1986834.9],[1535985.3,1990038.6],[1533207.8,1983234.6],[1544295.5,1979131.9],[1548653.8,1961449.3],[1565508.8,1961214.7],[1575999.2,1954365.0],[1573180.7,1941791.3]]],[[[2042470.5,2316521.8],[2032315.3,2340339.2],[2011781.2,2350695.9],[2002164.8,2373808.2],[1969234.3,2363916.1],[1986015.6,2299923.6],[1980377.3,2285465.7],[1993124.8,2274852.8],[1990599.5,2284382.9],[2042470.5,2316521.8]]],[[[2002871.2,2274482.3],[2010025.7,2269239.1],[2018355.7,2273528.9],[2010745.6,2291279.6],[2003972.3,2288104.9],[2002871.2,2274482.3]]],[[[-1474361.1,3044416.9],[-1545551.1,3059863.3],[-1611950.8,2775456.4],[-1605882.3,2752599.1],[-1612260.6,2745775.9],[-1607332.6,2723315.9],[-1587499.0,2701661.4],[-1584307.5,2685429.4],[-1627978.6,2627428.1],[-1631565.5,2612931.8],[-1651642.4,2599128.3],[-1673716.6,2566368.7],[-1673426.3,2552462.9],[-1656763.0,2544927.1],[-1652304.9,2535804.1],[-1671308.9,2500922.8],[-1715663.8,2301508.5],[-1464241.4,2247951.9],[-1232641.3,2208889.9],[-1189292.1,2481523.8],[-1211244.4,2516460.8],[-1222812.1,2506143.3],[-1221201.1,2494225.4],[-1237348.6,2499248.3],[-1249150.9,2495268.8],[-1251781.2,2502073.6],[-1270389.2,2500456.9],[-1284556.0,2507971.4],[-1294547.1,2496079.4],[-1320608.1,2506611.8],[-1332876.7,2492980.0],[-1342560.3,2504880.8],[-1346356.6,2542256.6],[-1354212.3,2549239.0],[-1362228.3,2546381.7],[-1369488.2,2556867.0],[-1365315.9,2578022.9],[-1379723.4,2603919.0],[-1380059.3,2632982.2],[-1385234.3,2633964.1],[-1381483.3,2642424.6],[-1389691.8,2654634.5],[-1424557.4,2634915.1],[-1439934.0,2649656.4],[-1432053.3,2663807.5],[-1436014.0,2672350.7],[-1419854.8,2682333.7],[-1425022.6,2712347.1],[-1418303.5,2713571.5],[-1398673.3,2763839.1],[-1420895.6,2767255.1],[-1422598.7,2778956.2],[-1431184.6,2775900.9],[-1460582.6,2845050.2],[-1489073.1,2869755.6],[-1478321.1,2873943.6],[-1485977.6,2882594.5],[-1480343.2,2898658.7],[-1497964.4,2934209.4],[-1474361.1,3044416.9]]],[[[2039644.2,2487923.3],[2014021.1,2505012.8],[2012251.8,2516155.7],[1994084.9,2528980.7],[1930762.7,2734268.3],[1927722.4,2726195.6],[1915446.0,2729648.8],[1905985.0,2719284.7],[1909797.7,2707597.6],[1905314.0,2691753.6],[1910821.2,2683187.8],[1904971.7,2663892.0],[1916916.4,2647863.4],[1915942.3,2637746.7],[1884825.4,2603093.4],[1892895.4,2583307.5],[1879976.3,2520422.8],[1890408.1,2459309.7],[1885801.9,2439993.4],[1897002.2,2428362.9],[1989568.3,2448927.1],[2005592.3,2471957.7],[2028366.3,2479926.5],[2029136.4,2489639.9],[2039644.2,2487923.3]]],[[[-1675823.6,1491829.2],[-2037521.8,2033530.9],[-1953549.9,2358336.3],[-2296199.8,2455524.8],[-2297310.0,2439617.1],[-2305606.8,2445222.7],[-2310587.6,2439606.7],[-2297366.5,2418769.8],[-2299289.9,2390232.9],[-2310867.7,2383353.0],[-2306144.0,2375586.5],[-2318527.2,2361202.1],[-2320167.4,2340211.4],[-2359737.0,2292592.3],[-2361128.3,2267810.1],[-2345826.8,2244437.7],[-2334399.3,2207541.4],[-2336493.0,2181101.0],[-2348120.8,2159828.4],[-2346966.4,2124783.2],[-2353591.9,2109528.3],[-2318507.5,2039993.2],[-2313577.1,2010609.4],[-2324003.6,1991416.9],[-2308592.9,1988723.3],[-2289140.4,1961546.9],[-2297576.2,1892673.8],[-2293575.9,1878457.5],[-2272897.0,1854498.6],[-2281171.6,1782538.5],[-2266666.8,1761893.9],[-2246763.2,1697878.2],[-2219688.5,1663617.1],[-2224298.1,1641056.3],[-2206936.9,1626163.1],[-2216638.2,1605266.0],[-2212984.3,1597647.7],[-2222918.5,1564238.4],[-2206224.9,1544099.9],[-2178524.6,1540526.0],[-2142842.5,1521323.4],[-2130519.6,1521139.4],[-2111868.1,1502126.8],[-2106141.7,1480528.6],[-2074193.4,1459573.9],[-2049327.1,1457964.4],[-2043144.2,1440503.8],[-2048129.4,1427541.8],[-2036617.9,1417198.0],[-2018337.2,1417161.9],[-1974857.1,1357878.1],[-1966587.4,1333798.9],[-1970951.3,1286861.0],[-1964004.2,1281257.6],[-1964607.3,1270903.8],[-1957295.9,1269783.2],[-1714944.0,1243887.1],[-1705080.2,1266550.0],[-1724132.4,1283374.0],[-1718923.8,1317883.5],[-1697492.7,1331009.3],[-1690249.5,1373033.0],[-1677838.5,1387984.9],[-1646884.0,1401924.8],[-1649144.1,1412220.4],[-1665606.3,1427798.6],[-1667692.7,1457277.7],[-1678544.2,1476965.1],[-1675823.6,1491829.2]]],[[[-2338627.4,1974339.0],[-2331427.0,1957581.5],[-2323331.0,1956741.4],[-2321250.2,1964167.7],[-2328776.8,1975899.3],[-2338627.4,1974339.0]]],[[[-2112164.0,1417911.3],[-2110573.1,1406954.4],[-2101982.0,1406532.9],[-2100941.0,1418619.0],[-2112164.0,1417911.3]]],[[[-2072450.3,1405893.8],[-2062947.5,1380541.2],[-2041279.2,1373870.9],[-2038481.6,1382488.9],[-2045290.9,1396922.1],[-2058287.1,1407542.6],[-2072450.3,1405893.8]]],[[[-2085122.9,1357706.2],[-2073826.5,1323639.2],[-2057762.5,1322309.8],[-2055796.6,1328292.3],[-2071952.2,1358424.1],[-2085122.9,1357706.2]]],[[[-2132685.7,1478052.1],[-2123545.1,1472339.5],[-2113924.5,1479487.7],[-2167395.0,1503814.7],[-2174781.9,1498211.4],[-2198138.8,1503481.3],[-2209934.8,1518417.1],[-2225916.3,1516498.4],[-2220553.7,1500372.6],[-2204759.9,1494863.9],[-2192189.1,1476940.0],[-2170555.9,1482675.5],[-2153826.4,1475016.7],[-2132685.7,1478052.1]]],[[[-2164785.3,1405231.1],[-2156595.8,1390109.3],[-2141688.1,1392577.0],[-2153368.6,1408575.6],[-2164785.3,1405231.1]]],[[[1791133.4,1949785.1],[1809308.5,1972898.0],[1818308.5,2004452.6],[1832296.3,2020920.8],[1841930.6,2047005.8],[1848384.1,2073511.0],[1846082.4,2137503.3],[1841635.1,2156690.7],[1811112.5,2150943.7],[1812982.1,2167844.2],[1823818.7,2171471.0],[1828125.4,2212264.3],[1753971.8,2236456.5],[1727681.7,2188460.3],[1737232.7,2176036.8],[1728990.6,2154378.3],[1733214.1,2141439.6],[1743771.1,2140461.2],[1747291.5,2127503.3],[1755523.3,2126719.3],[1781756.1,2103665.2],[1753036.0,2075954.2],[1753404.8,2067148.4],[1737241.0,2058490.3],[1725332.5,2031790.0],[1730725.4,2025777.3],[1729355.7,2012670.0],[1754244.1,1994700.8],[1791133.4,1949785.1]]],[[[1599481.4,1341756.4],[1474030.2,1431899.1],[1373438.3,1416730.9],[1372762.2,1429772.0],[1356064.7,1446520.4],[1347633.1,1438083.9],[1345541.3,1449423.8],[1223917.9,1438632.5],[1193782.8,1417631.4],[1163300.0,1405975.4],[1164018.4,1398576.7],[1153084.6,1390555.5],[1145388.3,1372743.8],[1177813.6,1349505.3],[1191138.4,1351050.2],[1229416.6,1295967.1],[1252360.6,1285240.4],[1267216.9,1265893.7],[1294609.8,1251012.8],[1295502.1,1237699.5],[1316636.9,1218023.4],[1342012.4,1206678.6],[1355167.6,1166114.2],[1379315.9,1150927.6],[1391854.8,1114095.9],[1425012.3,1105664.1],[1426662.8,1115924.3],[1456086.8,1142860.5],[1466348.4,1166285.3],[1490407.0,1181019.8],[1526342.6,1228528.9],[1541763.9,1234025.7],[1559465.7,1261592.1],[1555065.0,1283257.1],[1566772.8,1310349.6],[1583286.7,1332216.0],[1599481.4,1341756.4]]],[[[1057576.8,2178191.4],[1053780.6,2214954.5],[1074191.4,2227233.0],[1095355.9,2256621.8],[1095735.0,2292555.7],[1111693.5,2369983.4],[1052570.5,2557857.1],[971435.3,2595601.3],[959607.0,2594269.0],[972003.2,2621096.4],[953228.8,2632407.4],[931040.6,2622286.7],[916753.2,2641060.5],[911164.9,2672638.4],[879396.6,2660964.2],[861371.1,2678186.8],[850720.6,2705309.8],[570807.9,2834820.8],[548358.9,2826347.4],[501104.5,2792896.2],[489855.0,2796476.4],[431053.7,2628774.8],[445014.3,2626004.4],[453486.3,2608283.8],[534319.4,2591653.5],[569020.8,2577661.0],[580458.7,2581809.2],[612659.3,2573623.0],[611665.1,2560985.3],[639261.8,2549762.6],[634621.6,2512275.7],[652415.9,2515469.3],[647556.3,2495796.4],[654724.7,2486511.4],[672169.1,2484509.4],[673791.7,2498677.9],[695081.8,2527694.7],[722100.4,2530212.6],[763706.2,2511156.0],[733513.7,2468449.7],[715722.5,2382893.5],[712891.7,2298352.7],[732450.2,2200731.3],[724742.8,2117718.3],[921923.0,2138441.1],[922758.1,2131322.6],[1036160.2,2149833.2],[1057576.8,2178191.4]]],[[[448702.3,1115187.0],[452660.3,1121047.7],[444697.4,1128143.6],[455367.4,1130280.5],[458103.7,1146704.7],[453620.7,1141638.2],[448939.8,1151394.5],[456148.6,1165049.2],[448256.5,1157026.6],[442515.1,1160207.4],[449200.8,1168494.7],[439858.7,1163334.9],[444263.1,1170941.8],[439767.2,1177634.5],[448707.1,1182815.5],[438939.7,1190488.5],[457074.9,1190479.3],[446163.1,1196349.2],[447114.7,1202063.0],[460570.7,1203007.5],[452714.2,1209474.3],[457689.4,1218870.0],[450500.1,1227586.7],[461564.3,1223254.6],[459226.6,1229235.5],[469574.5,1236619.8],[461241.7,1242356.1],[474889.9,1246039.9],[463329.8,1254694.1],[471004.7,1250788.6],[472164.7,1258962.2],[480454.8,1260616.4],[477183.0,1268178.9],[485178.2,1269995.6],[487271.5,1263900.3],[493536.5,1274777.8],[493190.1,1306599.2],[497062.4,1299415.7],[502980.4,1306086.2],[492899.4,1308749.9],[495188.0,1318186.8],[497113.3,1311077.0],[503931.2,1312339.0],[500108.7,1328166.6],[504246.7,1322008.6],[515949.8,1325009.7],[521444.7,1334332.4],[515656.3,1346549.3],[523884.1,1345684.2],[526604.4,1356355.1],[535399.1,1358315.9],[534318.2,1368242.2],[525562.7,1374229.6],[532747.5,1386593.7],[525242.5,1384780.7],[524590.3,1390111.6],[531459.7,1396895.9],[535111.2,1387108.4],[539466.6,1391947.8],[535300.2,1404856.5],[547282.5,1401895.8],[542462.9,1410155.6],[551517.2,1417481.3],[543915.5,1418585.4],[541636.5,1425778.9],[564069.3,1437361.3],[556751.5,1442515.1],[559112.1,1447145.8],[568127.4,1444954.3],[559472.7,1457282.0],[502009.7,1453114.7],[527841.4,1489106.2],[518669.3,1510475.3],[122661.6,1495566.9],[141287.3,1371965.2],[139472.2,1175624.7],[148777.4,1165418.2],[167334.0,1171256.3],[180434.9,1166734.6],[181686.2,1107314.5],[448702.3,1115187.0]]],[[[731815.6,816309.6],[708032.0,1008009.6],[715454.5,1344503.0],[705275.8,1355271.6],[514911.9,1341742.9],[521444.7,1334332.4],[515949.8,1325009.7],[504246.7,1322008.6],[501580.0,1329292.1],[503931.2,1312339.0],[498599.3,1310291.5],[494638.9,1316754.6],[492899.4,1308749.9],[502980.4,1306086.2],[497062.4,1299415.7],[493190.1,1306599.2],[493536.5,1274777.8],[487271.5,1263900.3],[485178.2,1269995.6],[477183.0,1268178.9],[480454.8,1260616.4],[472164.7,1258962.2],[471004.7,1250788.6],[463329.8,1254694.1],[474889.9,1246039.9],[461241.7,1242356.1],[469574.5,1236619.8],[459226.6,1229235.5],[461564.3,1223254.6],[450500.1,1227586.7],[457689.4,1218870.0],[452714.2,1209474.3],[460570.7,1203007.5],[447114.7,1202063.0],[446163.1,1196349.2],[457074.9,1190479.3],[438939.7,1190488.5],[448707.1,1182815.5],[439767.2,1177634.5],[444263.1,1170941.8],[439858.7,1163334.9],[449200.8,1168494.7],[442515.1,1160207.4],[448256.5,1157026.6],[456148.6,1165049.2],[449283.1,1148276.3],[453620.7,1141638.2],[458437.5,1145077.3],[455367.4,1130280.5],[444697.4,1128143.6],[452660.3,1121047.7],[444829.0,1105807.2],[451214.6,1104275.6],[456217.7,1112441.1],[458771.2,1104465.9],[450126.6,1087724.7],[460690.4,1084294.0],[452015.6,1073115.4],[455271.5,1068661.5],[464909.6,1075380.3],[459233.9,1065701.3],[468224.2,1059696.0],[458032.8,1064819.4],[456366.6,1057275.7],[470538.2,1052786.3],[467888.9,1043958.9],[479315.6,1045600.7],[470484.8,1037258.7],[469337.2,1025666.7],[465368.0,1030861.1],[453401.1,1025131.3],[453951.4,1018123.4],[464311.8,1017885.3],[463471.5,1023998.9],[468689.0,1020019.9],[462121.1,1009076.5],[454826.4,1011680.5],[462769.4,1005648.2],[452546.5,998935.8],[447146.9,982190.5],[438424.1,985126.6],[436955.4,975788.3],[446915.7,976045.8],[436676.3,974229.3],[434394.8,960022.4],[423425.5,960263.2],[434267.5,956594.2],[423422.8,948531.9],[428947.4,931967.0],[418923.4,935887.6],[425091.5,921113.1],[412351.8,918345.7],[422323.2,896352.8],[415280.3,889936.1],[596715.6,900434.5],[587559.4,861750.0],[617729.3,810333.4],[654726.0,816413.9],[683575.2,810482.6],[689415.9,819553.4],[731815.6,816309.6]]],[[[385428.6,1938647.1],[358203.5,1963772.6],[161827.2,1952814.6],[19008.5,1951775.9],[20403.4,1945930.6],[29205.3,1947315.4],[28872.2,1921857.2],[43964.3,1914397.8],[50135.7,1890844.0],[74503.3,1872980.7],[90866.2,1874729.0],[95348.2,1865959.5],[90436.3,1862064.7],[96390.2,1858261.4],[87874.1,1858217.3],[75960.6,1835778.4],[95505.3,1818499.0],[99944.1,1799726.8],[120839.7,1792749.9],[122661.6,1495566.9],[518669.3,1510475.3],[527841.4,1489106.2],[502009.7,1453114.7],[561800.2,1457455.3],[570978.6,1472516.7],[560203.8,1483791.4],[575237.6,1486621.0],[567107.3,1493955.4],[576530.7,1500277.4],[569726.4,1520476.5],[577671.9,1522302.2],[579899.8,1509953.6],[587329.8,1529264.6],[601118.4,1525161.9],[607949.8,1569144.9],[600468.9,1569326.9],[593577.8,1579899.1],[588958.0,1579306.8],[592155.8,1570436.0],[582363.3,1576440.2],[568786.5,1602236.7],[576577.7,1614202.6],[567059.1,1630122.3],[566300.1,1646917.0],[535699.3,1669595.5],[527677.0,1665734.9],[528330.5,1675236.1],[489539.7,1701117.8],[487134.0,1714642.7],[505810.2,1773690.6],[476071.0,1785200.9],[468445.3,1774232.4],[461795.3,1775328.3],[450641.6,1815566.9],[393317.1,1866202.1],[379076.0,1910065.4],[385428.6,1938647.1]]],[[[-595590.9,2913447.4],[-1057372.2,2967983.0],[-1474361.1,3044416.9],[-1497964.4,2934209.4],[-1480343.2,2898658.7],[-1485977.6,2882594.5],[-1478321.1,2873943.6],[-1489073.1,2869755.6],[-1460582.6,2845050.2],[-1431184.6,2775900.9],[-1422598.7,2778956.2],[-1420895.6,2767255.1],[-1398673.3,2763839.1],[-1418303.5,2713571.5],[-1425022.6,2712347.1],[-1419854.8,2682333.7],[-1436014.0,2672350.7],[-1432053.3,2663807.5],[-1439934.0,2649656.4],[-1424557.4,2634915.1],[-1389691.8,2654634.5],[-1381483.3,2642424.6],[-1385234.3,2633964.1],[-1380059.3,2632982.2],[-1379723.4,2603919.0],[-1365315.9,2578022.9],[-1370698.8,2560507.9],[-1362228.3,2546381.7],[-1354212.3,2549239.0],[-1346356.6,2542256.6],[-1341195.7,2502810.8],[-1332066.5,2492588.9],[-1320608.1,2506611.8],[-1294547.1,2496079.4],[-1284556.0,2507971.4],[-1270389.2,2500456.9],[-1251781.2,2502073.6],[-1249150.9,2495268.8],[-1237348.6,2499248.3],[-1221201.1,2494225.4],[-1222812.1,2506143.3],[-1211244.4,2516460.8],[-1189487.0,2482044.5],[-1180475.0,2539524.7],[-870925.3,2496193.4],[-632334.3,2472269.3],[-595590.9,2913447.4]]],[[[121838.6,1551519.4],[120839.7,1792749.9],[99944.1,1799726.8],[95505.3,1818499.0],[75960.6,1835778.4],[87874.1,1858217.3],[96390.2,1858261.4],[90436.3,1862064.7],[95348.2,1865959.5],[90262.5,1875581.9],[74503.3,1872980.7],[58533.8,1887190.4],[-230128.9,1890518.1],[-511746.5,1903622.0],[-532364.9,1566902.9],[-202796.8,1552951.3],[121838.6,1551519.4]]],[[[694486.0,1669464.6],[704928.8,1671293.8],[704653.8,1684798.8],[711017.1,1679557.8],[723315.2,1683691.2],[724413.6,1676235.4],[730022.8,1676207.3],[731028.0,1692431.1],[738453.4,1685300.9],[748846.9,1689814.7],[774756.4,1674790.9],[779614.3,1689028.4],[796836.5,1701157.0],[805885.7,1690419.7],[813364.6,1692468.2],[814712.4,1685354.4],[825141.8,1696309.4],[826685.9,1717488.9],[838348.6,1720480.0],[834455.3,1727398.2],[844385.4,1712504.0],[865324.3,1703620.2],[874185.1,1711270.1],[879682.1,1740941.2],[891855.5,1744303.2],[897040.2,1761357.9],[911736.3,1773633.8],[907827.5,1794877.8],[921180.1,1797976.2],[930910.7,1793023.5],[945275.0,1804868.1],[960263.2,1807282.3],[961450.1,1818519.7],[953472.8,1820456.7],[956448.5,1828453.1],[949714.7,1836893.4],[955653.8,1843002.8],[921923.0,2138441.1],[698785.0,2115235.5],[722169.6,1846098.2],[715039.0,1840908.4],[719666.3,1830486.4],[713440.6,1821483.0],[727643.2,1802490.1],[731286.7,1778507.2],[706454.1,1725184.8],[694135.9,1720146.8],[701200.1,1710905.3],[690942.7,1696965.2],[694223.1,1688265.1],[689678.5,1683418.8],[694590.9,1679599.1],[687614.3,1680880.0],[694486.0,1669464.6]]],[[[-43768.5,2549802.1],[-314082.5,2557107.2],[-623890.9,2577214.6],[-652232.6,2250419.1],[-202588.1,2225204.7],[-165575.5,2198119.6],[-149920.3,2209379.5],[-101454.7,2207212.2],[-91953.9,2197723.5],[-56850.6,2184823.7],[-51116.8,2168512.6],[-43930.2,2168977.4],[-40956.7,2165005.9],[-36390.9,2165864.2],[-51730.9,2193919.6],[-35339.6,2236167.3],[-38533.4,2247593.0],[-45925.5,2248675.2],[-42068.9,2266009.2],[-48542.1,2273024.1],[-48235.7,2278738.2],[-36488.2,2278665.8],[-35518.7,2479260.3],[-54569.2,2492801.5],[-66862.0,2513337.8],[-45354.4,2537018.3],[-43768.5,2549802.1]]],[[[-1146477.1,1629453.6],[-794901.9,1587732.0],[-532364.9,1566902.9],[-504621.2,2015327.6],[-810232.7,2040135.6],[-1085516.0,2073717.6],[-1146477.1,1629453.6]]],[[[1704048.3,2037741.3],[1713665.0,2051981.7],[1733131.9,2053224.6],[1753404.8,2067148.4],[1753036.0,2075954.2],[1781756.1,2103665.2],[1755523.3,2126719.3],[1747291.5,2127503.3],[1743771.1,2140461.2],[1733214.1,2141439.6],[1728990.6,2154378.3],[1737232.7,2176036.8],[1727681.7,2188460.3],[1754340.4,2237015.9],[1748432.0,2243638.0],[1727791.4,2244569.2],[1717227.9,2256647.2],[1712308.4,2279422.2],[1696228.2,2281321.3],[1686350.1,2294133.2],[1329374.5,2224633.0],[1319502.2,2281624.6],[1296193.7,2263816.2],[1261936.1,2250506.4],[1309290.9,1962636.2],[1704048.3,2037741.3]]],[[[-2144154.0,2905848.4],[-2132975.8,2906846.0],[-2123724.1,2896609.9],[-2093600.9,2891538.6],[-2089454.4,2876102.7],[-2069268.3,2874650.7],[-2056689.2,2859239.9],[-2053777.3,2844207.8],[-2059413.0,2810711.1],[-2027838.3,2788541.3],[-1986479.1,2795730.8],[-1950970.6,2785721.4],[-1941071.2,2771658.3],[-1896938.2,2775879.8],[-1880820.6,2766311.4],[-1821157.2,2768953.0],[-1814216.2,2774365.9],[-1778138.0,2766828.0],[-1765872.3,2771462.0],[-1609581.7,2734191.7],[-1612260.6,2745775.9],[-1605882.3,2752599.1],[-1611950.8,2775456.4],[-1545551.1,3059863.3],[-1996384.3,3177425.2],[-1979346.8,3152851.5],[-1981323.2,3146085.7],[-2002104.5,3143808.8],[-1999595.1,3111968.3],[-2013478.2,3100116.8],[-2036379.1,3100074.6],[-2114971.1,3155750.7],[-2122169.2,3146306.1],[-2121551.8,3134263.2],[-2131789.4,3123417.9],[-2134704.6,3102699.5],[-2124634.4,3068330.9],[-2127924.1,3060765.6],[-2121917.8,3056918.3],[-2126795.1,3028799.6],[-2123288.6,3003674.8],[-2129856.1,2948923.7],[-2144154.0,2905848.4]]],[[[448702.3,1115187.0],[181686.2,1107314.5],[184056.1,993595.8],[205328.2,968909.4],[204641.9,948026.5],[216406.7,940189.7],[213026.1,935135.0],[223725.5,924578.1],[219717.6,916684.3],[229056.4,901823.2],[234209.1,904129.5],[231718.1,893846.4],[237123.4,887173.1],[230563.1,883403.8],[235711.9,876588.6],[233362.7,864005.3],[216492.2,832019.0],[220658.3,820774.0],[214473.1,809912.9],[220439.7,804223.5],[221552.5,778751.1],[200749.5,747721.4],[211669.4,727060.8],[220303.7,737388.8],[268487.4,742944.7],[326345.3,722997.3],[359377.9,718878.4],[380045.0,725254.3],[400520.9,707319.5],[422864.9,709821.6],[457931.5,691599.5],[489252.2,684924.1],[485231.6,676346.6],[494168.0,671082.3],[530869.8,677826.0],[551360.2,675294.8],[580820.6,691727.5],[621349.9,701424.2],[635806.7,692287.4],[638867.4,665105.5],[659473.2,680592.1],[671643.0,674721.5],[688284.0,697139.4],[689147.1,708645.2],[672286.1,716376.9],[664974.4,730106.7],[693425.8,763952.1],[696941.2,792805.6],[686884.7,810251.1],[654726.0,816413.9],[616843.9,810897.8],[605009.5,839648.6],[587559.4,861750.0],[596715.6,900434.5],[415280.3,889936.1],[422323.2,896352.8],[412351.8,918345.7],[425091.5,921113.1],[418923.4,935887.6],[428947.4,931967.0],[423422.8,948531.9],[434267.5,956594.2],[423425.5,960263.2],[434394.8,960022.4],[436676.3,974229.3],[446915.7,976045.8],[436955.4,975788.3],[438424.1,985126.6],[447146.9,982190.5],[452546.5,998935.8],[462769.4,1005648.2],[454826.4,1011680.5],[462121.1,1009076.5],[468689.0,1020019.9],[463471.5,1023998.9],[464311.8,1017885.3],[453951.4,1018123.4],[453401.1,1025131.3],[465368.0,1030861.1],[469337.2,1025666.7],[470484.8,1037258.7],[474470.2,1036788.8],[479315.6,1045600.7],[467888.9,1043958.9],[470538.2,1052786.3],[456366.6,1057275.7],[458032.8,1064819.4],[468224.2,1059696.0],[459233.9,1065701.3],[464909.6,1075380.3],[452282.5,1071982.9],[460690.4,1084294.0],[450413.6,1086529.3],[458771.2,1104465.9],[454309.9,1113758.5],[451214.6,1104275.6],[444829.0,1105807.2],[448702.3,1115187.0]]],[[[2039644.2,2487923.3],[2040639.8,2498465.4],[2033824.9,2506987.8],[2047364.2,2511476.5],[2042284.6,2517728.7],[2036791.3,2514680.7],[2034094.8,2525143.2],[2054223.2,2562318.0],[2095480.8,2595149.9],[2103216.8,2609398.5],[2112214.5,2599643.1],[2118041.8,2605540.0],[2114389.8,2613147.4],[2122902.0,2613091.1],[2128918.7,2622420.6],[2150393.8,2614385.2],[2158276.2,2632279.2],[2151363.3,2640978.4],[2163226.8,2644029.3],[2170270.3,2657210.2],[2186639.1,2667513.1],[2187068.4,2686815.5],[2208221.5,2700553.6],[2209198.2,2710672.7],[2225391.4,2714003.9],[2263786.2,2772322.0],[2230953.3,2804900.8],[2220632.0,2805151.5],[2218529.8,2796712.4],[2209639.1,2801921.2],[2202195.1,2809939.0],[2204316.5,2821239.6],[2194886.2,2830581.2],[2197244.1,2842886.1],[2164214.4,2846132.3],[2161909.6,2871440.4],[2121748.9,2992373.0],[2080122.4,3013036.5],[2036720.1,2979985.7],[2023699.5,2984936.6],[2018895.6,3003229.8],[2004753.8,3002839.0],[1971225.3,2905358.3],[1975166.4,2874357.8],[1964301.5,2845418.1],[1975777.9,2815320.0],[1966731.9,2800494.3],[1970212.4,2792719.1],[1952022.3,2763991.6],[1962334.6,2751671.1],[1949025.8,2753315.2],[1950117.1,2730693.1],[1939745.7,2740558.4],[1930762.7,2734268.3],[1994084.9,2528980.7],[2012251.8,2516155.7],[2014021.1,2505012.8],[2039644.2,2487923.3]]]],"alaska":[[[[-743379.8,1213530.3],[-738591.5,1189349.9],[-678211.2,1140761.2],[-638338.6,1153158.8],[-631309.0,1163316.2],[-638595.8,1174611.7],[-633936.5,1203597.1],[-641163.4,1214466.8],[-654920.7,1213367.6],[-661386.2,1230095.9],[-708964.2,1212703.4],[-743379.8,1213530.3]]],[[[-1029196.8,1282976.8],[-1026814.9,1274127.6],[-1016111.7,1278240.3],[-1019360.3,1286329.2],[-1029196.8,1282976.8]]],[[[-1033326.0,1336150.9],[-1035408.8,1314967.6],[-1025091.1,1295468.7],[-996952.0,1277201.3],[-986186.1,1279808.9],[-1013024.0,1313839.9],[-1019127.7,1341981.4],[-1033326.0,1336150.9]]],[[[-345724.5,978515.7],[-348356.2,964236.4],[-339533.0,968383.0],[-345724.5,978515.7]]],[[[-377623.8,984204.2],[-365253.0,965927.4],[-351805.2,985889.9],[-369067.2,995788.4],[-377623.8,984204.2]]],[[[-360910.3,1594617.6],[-355461.5,1585969.3],[-348169.9,1594704.2],[-354109.0,1600128.5],[-360910.3,1594617.6]]],[[[-382681.4,1543276.2],[-383693.6,1531872.3],[-377209.6,1536994.9],[-382681.4,1543276.2]]],[[[-665814.8,1740831.6],[-661855.4,1731623.4],[-652297.8,1736286.1],[-658071.7,1745883.6],[-665814.8,1740831.6]]],[[[-672904.8,1821146.9],[-676829.7,1810294.8],[-669554.6,1813325.8],[-672904.8,1821146.9]]],[[[-682549.7,1827867.7],[-672975.0,1827606.4],[-675020.7,1838009.3],[-680012.7,1838787.0],[-682549.7,1827867.7]]],[[[-880829.2,1625773.8],[-870935.4,1593940.6],[-841552.0,1598140.9],[-821453.2,1585773.7],[-790160.6,1530188.1],[-776083.2,1531015.6],[-759854.4,1549087.0],[-745353.3,1542992.0],[-744669.4,1533691.7],[-735491.7,1535869.0],[-724164.3,1565179.1],[-777722.8,1595515.0],[-794856.5,1630202.6],[-830127.4,1624272.6],[-862934.4,1657544.5],[-880829.2,1625773.8]]],[[[423245.8,1068058.3],[431821.3,1062740.8],[442500.7,1071689.8],[432581.2,1090873.0],[423245.8,1068058.3]]],[[[1027304.6,1006353.1],[1086563.7,925539.5],[1198147.9,842708.1],[1195101.9,823623.6],[1226199.4,815538.3],[1229324.4,838412.6],[1236909.6,829074.7],[1244105.6,832792.4],[1251896.5,793284.1],[1278408.8,771555.2],[1273399.8,749441.0],[1294416.5,713061.3],[1477249.5,777471.0],[1472201.8,789149.2],[1493082.3,858568.8],[1463524.3,905096.0],[1462736.3,933597.4],[1403563.3,954301.1],[1348075.6,963518.6],[1333838.3,957012.4],[1324117.0,978062.0],[1307223.1,980234.5],[1305525.4,999874.1],[1285303.4,998466.6],[1287938.4,1013471.4],[1178466.1,1115738.4],[1181679.0,1121792.3],[1118648.4,1152447.9],[1081857.6,1186626.7],[1066722.4,1185854.8],[1054054.5,1215080.3],[1038852.8,1226074.4],[1022482.8,1233213.1],[981180.6,1198667.8],[989676.8,1192236.4],[978397.3,1182388.2],[981240.0,1148420.4],[936430.6,1106754.9],[922690.1,1142191.4],[813807.6,1213230.6],[813927.1,1243562.7],[781164.2,1234253.0],[769261.6,1214137.4],[740594.8,1222516.8],[739229.1,1212155.3],[711300.7,1216334.0],[507882.2,2242155.6],[413002.4,2280550.2],[360474.7,2251892.7],[260776.5,2276623.1],[231140.1,2294831.2],[211507.4,2292086.5],[209743.6,2283206.3],[161753.5,2298152.1],[102197.5,2277668.0],[69102.5,2321554.7],[37233.7,2331211.3],[3760.2,2327262.0],[-90702.6,2383808.4],[-146756.8,2327887.5],[-195299.9,2333226.8],[-263066.8,2284077.8],[-303061.5,2284054.3],[-324845.9,2269378.8],[-356028.9,2231651.1],[-373618.7,2176565.9],[-403665.1,2149030.2],[-499135.7,2150418.5],[-511664.7,2105399.6],[-535654.7,2090246.2],[-481991.4,2048335.0],[-436783.0,1991076.5],[-431024.6,1937433.1],[-386998.1,1911236.9],[-426418.6,1882810.4],[-470104.8,1887867.4],[-540851.9,1866979.3],[-645564.4,1821268.3],[-650401.9,1801640.8],[-600359.8,1764090.8],[-609732.3,1746689.0],[-589963.9,1712470.2],[-595882.2,1698596.3],[-587169.4,1662749.3],[-576314.1,1670119.4],[-529348.2,1646856.1],[-468999.4,1653482.9],[-424405.1,1618398.7],[-397536.7,1644975.3],[-342566.3,1600814.1],[-337723.5,1554298.5],[-362527.1,1525769.5],[-388824.2,1525866.2],[-409225.8,1548471.9],[-428251.3,1550436.0],[-434277.3,1535686.1],[-418313.5,1529352.9],[-457838.1,1490600.4],[-500683.5,1521193.5],[-523804.7,1517313.4],[-546211.8,1499926.7],[-557117.4,1467215.8],[-571165.9,1463825.6],[-587415.3,1430454.9],[-626702.8,1401420.2],[-646121.6,1351527.7],[-624373.5,1285571.1],[-601878.8,1280777.5],[-601717.9,1245187.4],[-626024.7,1225484.9],[-583791.8,1176665.8],[-573632.0,1157729.9],[-578641.0,1144884.9],[-560609.8,1114126.3],[-544912.5,1115267.2],[-556820.8,1127543.1],[-499346.7,1120066.9],[-483734.8,1131917.3],[-456022.4,1119699.2],[-442817.7,1085423.2],[-463400.8,1056697.7],[-451146.1,1005711.3],[-476981.0,993050.5],[-475713.5,985119.9],[-446763.2,970188.8],[-417824.7,983401.8],[-414153.4,967251.8],[-402246.4,965172.7],[-379612.6,1001899.9],[-364008.5,1004520.2],[-342511.4,984269.9],[-319257.0,989043.4],[-296239.2,937961.2],[-244371.9,957106.0],[-236433.6,950755.6],[-296915.5,781873.9],[-382853.5,731823.8],[-410860.0,693515.0],[-447675.2,697360.2],[-487298.3,687868.3],[-580214.5,619703.2],[-657180.5,599896.1],[-671023.2,603941.5],[-692553.5,576147.7],[-709189.1,569317.1],[-704128.2,541112.4],[-674738.3,536899.8],[-652786.4,554562.8],[-581674.3,550426.2],[-576560.3,560683.1],[-585488.4,575512.0],[-552411.2,582316.4],[-540781.1,533432.0],[-515384.9,553634.6],[-488883.8,553467.4],[-490412.5,577936.5],[-472591.6,576941.5],[-472875.3,587989.0],[-460597.7,600792.2],[-445198.7,605646.4],[-457456.5,612717.9],[-436408.2,623643.1],[-439644.0,587587.8],[-416263.8,577359.0],[-392927.9,609868.0],[-389283.6,598667.8],[-406056.7,565827.0],[-401912.1,551569.7],[-372597.8,560369.0],[-365710.6,571866.1],[-335695.9,547370.4],[-327706.1,560161.4],[-333697.3,578250.8],[-344763.0,581915.7],[-343303.6,603235.8],[-364441.1,595037.4],[-381525.1,621465.8],[-349063.6,627924.4],[-342350.7,639277.3],[-251534.8,632909.2],[-142280.3,751579.5],[-130129.4,817791.5],[-99704.3,835064.3],[-97743.7,845506.2],[-77441.8,849594.9],[-55499.7,886332.1],[-23036.9,888713.5],[-7857.1,899919.2],[10998.7,946325.9],[21613.1,945578.6],[46934.1,970510.3],[56053.8,1001164.1],[171291.6,1024573.0],[246713.4,1067591.3],[253792.9,1091182.2],[279678.7,1110980.8],[322192.3,1112417.0],[338093.8,1099071.6],[353135.2,1100199.6],[371751.6,1112383.6],[381825.6,1141235.4],[440691.1,1174135.0],[519160.2,1157827.8],[523953.9,1150808.3],[513641.7,1128993.5],[520836.3,1118425.2],[535304.9,1122632.2],[547206.2,1143962.8],[621003.8,1170822.5],[757159.9,1151592.3],[891992.8,1106600.8],[934699.4,1067648.5],[980777.3,1053304.4],[996520.1,1039477.7],[1013696.7,1043116.9],[1009213.5,1022676.6],[1014945.6,1009119.1],[1027304.6,1006353.1]]],[[[-1790207.8,578103.4],[-1780540.8,559259.8],[-1759412.4,567401.4],[-1767202.1,584796.4],[-1790207.8,578103.4]]],[[[-1857586.1,571936.9],[-1831086.8,518965.5],[-1804634.9,511827.3],[-1825558.6,556860.1],[-1849810.8,576603.8],[-1857586.1,571936.9]]],[[[-1874786.6,603064.7],[-1872177.5,587424.3],[-1855623.1,582536.4],[-1860394.5,599923.8],[-1874786.6,603064.7]]],[[[-1873083.4,627241.2],[-1874135.9,615400.5],[-1850696.8,592754.1],[-1836550.5,596627.2],[-1860489.5,628533.8],[-1873083.4,627241.2]]],[[[-1876887.6,613538.1],[-1883789.2,604430.2],[-1876120.8,604473.3],[-1876887.6,613538.1]]],[[[-1914841.5,655731.0],[-1912753.5,647917.0],[-1905047.3,649624.6],[-1906214.0,657451.6],[-1914841.5,655731.0]]],[[[-1936401.7,636790.0],[-1927895.7,616659.1],[-1918181.7,626017.8],[-1885476.0,621462.6],[-1893898.4,631462.6],[-1885076.9,643826.1],[-1893776.2,653324.5],[-1936401.7,636790.0]]],[[[-1996307.4,726330.7],[-1993386.1,711825.9],[-1979807.7,713722.7],[-1987037.3,728263.6],[-1996307.4,726330.7]]],[[[-2097284.2,826682.3],[-2088282.0,808211.0],[-2073439.4,804413.5],[-2074997.9,817463.5],[-2097284.2,826682.3]]],[[[-2146656.9,806348.2],[-2123766.6,780291.0],[-2105450.4,799247.2],[-2118712.0,810205.1],[-2146656.9,806348.2]]],[[[-2174535.8,886214.8],[-2154644.7,844833.8],[-2142527.5,846577.0],[-2126398.8,831372.0],[-2107079.1,836118.7],[-2121786.1,872741.3],[-2151366.2,890014.6],[-2174535.8,886214.8]]],[[[-922381.2,536015.1],[-920642.6,527851.9],[-912497.6,528194.6],[-912151.3,538117.7],[-922381.2,536015.1]]],[[[-963924.6,849873.7],[-949561.9,831307.9],[-934695.8,839759.9],[-940498.0,850276.3],[-963924.6,849873.7]]],[[[-958815.3,914352.8],[-954813.3,906627.8],[-947293.8,910300.2],[-950959.9,918408.1],[-958815.3,914352.8]]],[[[-1091677.8,438354.3],[-1087442.5,427513.1],[-1063384.8,433042.4],[-1051894.4,426056.1],[-1039578.6,461408.5],[-1055202.0,470087.0],[-1057759.1,451357.0],[-1075668.2,458901.7],[-1091677.8,438354.3]]],[[[-986269.4,921971.7],[-989158.9,901877.9],[-981610.6,898799.0],[-954699.3,922502.9],[-962002.3,928653.3],[-986269.4,921971.7]]],[[[-1139861.2,428928.0],[-1133129.4,418988.1],[-1116867.9,422570.2],[-1107886.5,439310.2],[-1125103.9,443708.5],[-1139861.2,428928.0]]],[[[-1172848.0,428727.4],[-1162848.3,416660.8],[-1144943.5,435420.6],[-1154259.1,441880.1],[-1172848.0,428727.4]]],[[[-1266732.9,429997.7],[-1254853.1,419152.3],[-1230851.3,431859.1],[-1245889.4,443867.9],[-1266732.9,429997.7]]],[[[-1431815.9,477557.1],[-1429534.3,468638.6],[-1420059.8,471896.2],[-1423324.7,480304.9],[-1431815.9,477557.1]]],[[[-1458638.6,480684.8],[-1454963.0,470608.9],[-1445653.2,474997.8],[-1449051.0,483838.0],[-1458638.6,480684.8]]],[[[-1594705.8,497402.2],[-1592235.7,487558.8],[-1581047.2,490629.5],[-1586145.6,502190.1],[-1594705.8,497402.2]]],[[[-1644973.5,512329.5],[-1638968.0,495277.7],[-1647093.6,483762.9],[-1631852.6,466934.1],[-1620103.3,475245.1],[-1577022.1,460013.7],[-1562173.7,474550.6],[-1574808.9,455390.4],[-1569333.1,443552.5],[-1449346.7,451824.4],[-1392691.0,432192.8],[-1361460.2,433863.1],[-1306093.4,404876.4],[-1278371.3,414450.0],[-1320029.0,439856.3],[-1352795.8,446422.5],[-1341980.5,465680.7],[-1356078.6,480936.6],[-1401735.4,460556.5],[-1460804.6,461181.5],[-1494072.7,491449.2],[-1505788.8,486447.8],[-1511125.1,467772.3],[-1523503.5,470810.8],[-1527696.4,489741.9],[-1544121.5,490014.1],[-1559026.9,477954.0],[-1558108.9,489854.4],[-1569336.3,497234.7],[-1581943.8,483415.1],[-1598967.3,483958.5],[-1596900.0,496522.4],[-1618130.2,512749.3],[-1644973.5,512329.5]]],[[[-1668564.7,474866.7],[-1662975.8,464687.8],[-1654182.3,465483.2],[-1656169.7,476255.8],[-1668564.7,474866.7]]],[[[-1690962.1,518242.0],[-1684089.4,505146.2],[-1670150.8,512297.7],[-1679386.1,526431.3],[-1690962.1,518242.0]]],[[[-1711714.3,502158.7],[-1692725.4,483869.1],[-1664041.1,484761.3],[-1674684.8,498278.4],[-1711714.3,502158.7]]],[[[-1728945.6,474182.5],[-1723003.2,459338.1],[-1698844.3,474976.4],[-1706255.4,485741.9],[-1728945.6,474182.5]]],[[[-379566.1,550330.3],[-357411.0,535583.4],[-348386.6,543306.6],[-357281.8,556170.5],[-379566.1,550330.3]]],[[[-452871.7,601441.0],[-451259.1,589869.6],[-445606.4,596639.2],[-452871.7,601441.0]]],[[[-559976.0,575205.4],[-561313.1,563623.1],[-553989.9,568461.6],[-559976.0,575205.4]]],[[[-584312.3,525405.8],[-566238.2,506474.3],[-534531.7,517202.2],[-571945.2,542726.3],[-584312.3,525405.8]]],[[[-584667.8,643065.0],[-578695.6,632267.3],[-569606.4,639752.4],[-575985.7,653026.1],[-584667.8,643065.0]]],[[[-782901.6,504262.3],[-761549.3,514108.8],[-756146.6,505235.8],[-713542.5,504853.5],[-694374.1,526677.3],[-736058.6,521622.4],[-730037.3,528829.7],[-739186.9,542833.8],[-754749.0,547863.6],[-764133.5,537351.6],[-788302.4,538932.3],[-791895.8,520680.3],[-851547.5,527796.2],[-865529.8,516957.0],[-863503.5,496281.9],[-872618.3,481948.4],[-909402.9,473605.7],[-907178.6,489216.5],[-940972.4,496813.9],[-1001985.6,443560.2],[-1018260.6,443127.6],[-1029125.6,422164.7],[-960313.1,430260.2],[-955814.8,444609.9],[-933022.8,457948.8],[-905034.1,444082.9],[-868920.5,458581.9],[-843338.3,456622.3],[-786784.0,488571.8],[-782901.6,504262.3]]],[[[88038.1,991991.0],[97026.7,981586.8],[123320.2,993232.4],[106148.5,1003958.7],[88038.1,991991.0]]],[[[-56152.1,810349.5],[-37412.1,795358.2],[-36934.0,773913.1],[-13310.6,745889.7],[-46529.0,728210.5],[-53217.8,708663.2],[5866.6,717035.9],[14416.0,731123.9],[838.2,735314.2],[33431.9,773942.2],[48234.5,772128.8],[70504.3,788219.3],[70175.0,801939.0],[95041.3,821113.5],[108884.5,817973.2],[116985.1,851731.9],[91021.4,896407.0],[131285.0,906197.8],[133377.7,932805.1],[106300.1,940435.1],[112319.8,949217.4],[101288.5,966125.5],[83923.4,972606.4],[30628.7,890948.8],[-34130.7,846493.0],[-56152.1,810349.5]]],[[[-115062.6,644906.8],[-95971.5,633835.4],[-92083.0,656906.7],[-102025.8,658463.7],[-115062.6,644906.8]]],[[[-175761.3,699390.7],[-175971.4,665639.2],[-165124.9,664606.1],[-158549.9,677105.0],[-166463.2,697571.1],[-175761.3,699390.7]]]]};
-
 // ---- map projection/render engine (runs in-browser) ----
 // ---- Albers equal-area conic (ellipsoidal, GRS80) for reprojecting Alaska ----
 // Input coords are CONUS Albers (EPSG:5070). We inverse to lat/lon, then
@@ -1877,76 +1870,102 @@ function findVariantAtCoordinates(latitude,longitude){
 let _mapCache=null;
 function computeMapData(){
   if(_mapCache) return _mapCache;
-  const gj=FVS_VARIANT_DISPLAY_GEOJSON||{};
-  const conus={}, ak={};
+  const prepared=window.PLOTTER_MAP_DATA||{};
+  const gj=prepared.variantDisplay||FVS_VARIANT_GEOJSON||{};
+  const states=prepared.stateBoundaries||{features:[]};
+  const conus={}, ak={}, stateConus={}, stateAk={};
   const cb=[Infinity,Infinity,-Infinity,-Infinity];
   const ab=[Infinity,Infinity,-Infinity,-Infinity];
-  function add(dst,b,v,rings,isAlaska){
-    if(!dst[v]) dst[v]=[];
-    const projected=[];
-    for(const ring of (rings||[])){
-      if(!ring||ring.length<4) continue;
-      let output=ring;
-      if(isAlaska){
-        try{ output=ring.map(reprojectAK); }catch(error){ output=ring; }
-      }
-      projected.push(output);
-      for(const point of output){
-        if(point[0]<b[0]) b[0]=point[0]; if(point[1]<b[1]) b[1]=point[1];
-        if(point[0]>b[2]) b[2]=point[0]; if(point[1]>b[3]) b[3]=point[1];
-      }
+  function add(dst,b,key,ring){
+    if(!dst[key]) dst[key]=[];
+    dst[key].push(ring);
+    if(!b) return;
+    for(const point of ring){
+      if(point[0]<b[0])b[0]=point[0]; if(point[1]<b[1])b[1]=point[1];
+      if(point[0]>b[2])b[2]=point[0]; if(point[1]>b[3])b[3]=point[1];
     }
-    if(projected.length) dst[v].push(projected);
+  }
+  function polygons(geometry){
+    if(!geometry) return [];
+    return geometry.type==='Polygon'?[geometry.coordinates]:(geometry.type==='MultiPolygon'?geometry.coordinates:[]);
   }
   for(const feature of (gj.features||[])){
     if(!feature||!feature.geometry) continue;
     const variant=feature.properties&&feature.properties.FVSVariant; if(!variant) continue;
-    const geometry=feature.geometry;
-    const polygons=geometry.type==='Polygon'?[geometry.coordinates]:(geometry.type==='MultiPolygon'?geometry.coordinates:[]);
-    polygons.forEach(rings=>add(variant==='AK'?ak:conus,variant==='AK'?ab:cb,variant,rings,variant==='AK'));
+    for(const polygon of polygons(feature.geometry)){
+      for(const ring of (polygon||[])){
+        if(!ring||ring.length<4) continue;
+        if(variant==='AK'){
+          let projected; try{ projected=ring.map(reprojectAK); }catch(error){ projected=ring; }
+          add(ak,ab,variant,projected);
+        }else add(conus,cb,variant,ring);
+      }
+    }
   }
-  _mapCache={conus,ak,cb,ab,stateConus:US_STATE_MAP_DATA.conus||[],stateAlaska:US_STATE_MAP_DATA.alaska||[]};
+  for(const feature of (states.features||[])){
+    if(!feature||!feature.geometry) continue;
+    const properties=feature.properties||{};
+    const code=String(properties.STUSPS||''); if(!code) continue;
+    const alaska=properties.projection==='AK_ALBERS'||code==='AK';
+    for(const polygon of polygons(feature.geometry)){
+      for(const ring of (polygon||[])){
+        if(!ring||ring.length<4) continue;
+        add(alaska?stateAk:stateConus,null,code,ring);
+      }
+    }
+  }
+  _mapCache={conus,ak,stateConus,stateAk,cb,ab,prepared:!!prepared.variantDisplay};
   return _mapCache;
 }
 function projector(b, box){
   const minX=b[0],minY=b[1],maxX=b[2],maxY=b[3];
   const gw=(maxX-minX)||1, gh=(maxY-minY)||1;
-  const scale=Math.min(box.w/gw,box.h/gh);
-  const ox=box.x+(box.w-gw*scale)/2, oy=box.y+(box.h-gh*scale)/2;
-  return point=>[ox+(point[0]-minX)*scale,oy+(maxY-point[1])*scale];
+  const s=Math.min(box.w/gw, box.h/gh);
+  const ox=box.x+(box.w-gw*s)/2, oy=box.y+(box.h-gh*s)/2;
+  return p=>[ ox+(p[0]-minX)*s, oy+(maxY-p[1])*s ];
 }
 function ringToPath(ring, proj){
-  let path='',lastX=null,lastY=null,started=false;
-  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-  for(const point of ring){
-    const projected=proj(point), x=Math.round(projected[0]), y=Math.round(projected[1]);
-    if(x<minX)minX=x; if(y<minY)minY=y; if(x>maxX)maxX=x; if(y>maxY)maxY=y;
-    if(x===lastX&&y===lastY) continue;
-    path+=(started?'L':'M')+x+' '+y+' '; lastX=x; lastY=y; started=true;
+  let d='', lx=null, ly=null, started=false;
+  let bx0=Infinity,by0=Infinity,bx1=-Infinity,by1=-Infinity;
+  for(const p of ring){
+    const q=proj(p); const x=Math.round(q[0]), y=Math.round(q[1]);
+    if(x<bx0)bx0=x; if(y<by0)by0=y; if(x>bx1)bx1=x; if(y>by1)by1=y;
+    if(x===lx&&y===ly) continue;
+    d+=(started?'L':'M')+x+' '+y+' '; lx=x; ly=y; started=true;
   }
-  if(!started||((maxX-minX)<2&&(maxY-minY)<2)) return '';
-  return path+'Z';
+  if(!started) return '';
+  if((bx1-bx0)<2 && (by1-by0)<2) return ''; // drop tiny slivers
+  return d+'Z';
 }
-function polygonsToPath(polygons,proj){
-  let path='';
-  for(const rings of polygons||[]) for(const ring of rings||[]) path+=ringToPath(ring,proj);
-  return path;
-}
-function mapLayer(data,proj,selected){
-  let base='',highlight='';
-  for(const variant of Object.keys(data)){
-    const path=polygonsToPath(data[variant],proj); if(!path) continue;
-    const common=`d="${path}" fill-rule="evenodd" style="cursor:pointer;" onclick="pickVariant('${variant}')"><title>${variant} — ${variantName(variant)}</title></path>`;
-    if(variant===selected) highlight+=`<path ${common}`.replace('<path d','<path fill="var(--accent)" fill-opacity="0.85" stroke="#1c3d22" stroke-width="0.9" d');
-    else base+=`<path ${common}`.replace('<path d','<path fill="#e1e9e1" stroke="#9faf9f" stroke-width="0.65" d');
+function mapLayer(dst, proj, sel){
+  let baseFills='', selectedFill='', baseOutlines='', selectedOutline='';
+  for(const variant in dst){
+    let d=''; for(const ring of dst[variant]) d+=ringToPath(ring,proj);
+    if(!d) continue;
+    const title=`<title>${variant} — ${variantName(variant)}</title>`;
+    const region=`class="variant-region" d="${d}" fill-rule="evenodd" style="cursor:pointer;" onclick="pickVariant('${variant}')"`;
+    if(variant===sel){
+      selectedFill+=`<path ${region} fill="var(--accent)" fill-opacity="0.84">${title}</path>`;
+      selectedOutline+=`<path class="variant-boundary selected" d="${d}" fill="none" stroke="#145d2c" stroke-width="3" vector-effect="non-scaling-stroke" pointer-events="none"></path>`;
+    }else{
+      baseFills+=`<path ${region} fill="#e5ede5">${title}</path>`;
+      baseOutlines+=`<path class="variant-boundary" d="${d}" fill="none" stroke="#218249" stroke-width="2.2" vector-effect="non-scaling-stroke" pointer-events="none"></path>`;
+    }
   }
-  return base+highlight;
+  return {fills:baseFills+selectedFill,outlines:baseOutlines+selectedOutline};
 }
-function stateBoundaryLayer(polygons,proj){
-  const path=polygonsToPath(polygons,proj); if(!path) return '';
-  return `<path d="${path}" fill="none" stroke="#536653" stroke-opacity="0.42" stroke-width="0.75" vector-effect="non-scaling-stroke" pointer-events="none"></path>`;
+function stateBoundaryLayer(dst,proj){
+  let html='';
+  for(const code in dst){
+    let d=''; for(const ring of dst[code]) d+=ringToPath(ring,proj);
+    if(!d) continue;
+    html+=`<path class="state-boundary" data-state="${escapeAttr(code)}" d="${d}" fill="none" stroke="#969c98" stroke-opacity="0.5" stroke-width="0.75" vector-effect="non-scaling-stroke" pointer-events="none"></path>`;
+  }
+  return html;
 }
-function pickVariant(variant){ setStandVariantSelection(variant,'map'); }
+function pickVariant(v){
+  setStandVariantSelection(v,'map');
+}
 function mapPinSVG(latitude,longitude,md,conusProjector,alaskaProjector,conusBox,alaskaBox){
   const latText=String(latitude??'').trim(), lonText=String(longitude??'').trim();
   if(latText===''||lonText==='') return '';
@@ -1970,28 +1989,34 @@ function mapPinSVG(latitude,longitude,md,conusProjector,alaskaProjector,conusBox
   </g>`;
 }
 function standMapSVG(selected,latitude,longitude){
-  const gj=FVS_VARIANT_DISPLAY_GEOJSON;
-  if(!gj||!gj.features||!gj.features.length) return '<div class="note-box">FVS Variant map data is unavailable.</div>';
+  const gj=FVS_VARIANT_GEOJSON;
+  if(!gj||!gj.features||!gj.features.length){
+    return `<div class="note-box">🗺️ <strong>Variant map not loaded.</strong></div>`;
+  }
   const md=computeMapData();
   const conusBox={x:6,y:6,w:948,h:512};
-  const alaskaBox={x:2,y:352,w:322,h:238};
-  const conusProjector=projector(md.cb,conusBox);
-  const alaskaProjector=projector(md.ab,alaskaBox);
-  const conusLayer=mapLayer(md.conus,conusProjector,selected);
-  const alaskaLayer=Object.keys(md.ak).length?mapLayer(md.ak,alaskaProjector,selected):'';
-  const conusStates=stateBoundaryLayer(md.stateConus,conusProjector);
-  const alaskaStates=stateBoundaryLayer(md.stateAlaska,alaskaProjector);
-  const pin=mapPinSVG(latitude,longitude,md,conusProjector,alaskaProjector,conusBox,alaskaBox);
-  const name=selected?(selected+' — '+variantName(selected)):'— no variant selected —';
-  return `<div class="variant-map-card">
-    <div class="muted variant-map-caption">FVS Variant coverage — <strong>${escapeHTML(name)}</strong> <span>· click a region to select manually${pin?' · red pin = recorded coordinates':''}</span></div>
-    <svg viewBox="0 0 960 600" class="variant-map-svg" role="img" aria-label="Dissolved FVS Variant coverage map with state boundaries${pin?' and recorded-location pin':''}">
+  const akBox={x:2,y:352,w:322,h:238};
+  const pc=projector(md.cb,conusBox);
+  const pa=projector(md.ab,akBox);
+  const conusLayer=mapLayer(md.conus,pc,selected);
+  const akLayer=Object.keys(md.ak).length?mapLayer(md.ak,pa,selected):{fills:'',outlines:''};
+  const conusStates=stateBoundaryLayer(md.stateConus,pc);
+  const alaskaStates=stateBoundaryLayer(md.stateAk,pa);
+  const pin=mapPinSVG(latitude,longitude,md,pc,pa,conusBox,akBox);
+  const nm=selected?(selected+' — '+variantName(selected)):'— no variant selected —';
+  return `
+  <div class="variant-map-card">
+    <div class="muted variant-map-caption">FVS Variant coverage — <strong>${escapeHTML(nm)}</strong> <span>· click a region to select manually${pin?' · red pin = recorded coordinates':''}</span></div>
+    <svg viewBox="0 0 960 600" class="variant-map-svg" role="img" aria-label="Dissolved FVS Variant coverage map with faint gray state boundaries beneath bold green FVS Variant boundaries and floating Alaska${pin?' and recorded-location pin':''}">
       <defs>
-        <clipPath id="variant-conus-clip"><rect x="${conusBox.x}" y="${conusBox.y}" width="${conusBox.w}" height="${conusBox.h}"></rect></clipPath>
-        <clipPath id="variant-alaska-clip"><rect x="${alaskaBox.x}" y="${alaskaBox.y}" width="${alaskaBox.w}" height="${alaskaBox.h}"></rect></clipPath>
+        <clipPath id="variantMapConusClip"><rect x="${conusBox.x}" y="${conusBox.y}" width="${conusBox.w}" height="${conusBox.h}"></rect></clipPath>
       </defs>
-      <g clip-path="url(#variant-conus-clip)">${conusLayer}${conusStates}</g>
-      ${alaskaLayer?`<rect x="${alaskaBox.x}" y="${alaskaBox.y}" width="${alaskaBox.w}" height="${alaskaBox.h}" rx="4" fill="#fbfcfb" stroke="#c6d0c6" stroke-width="0.7"></rect><g clip-path="url(#variant-alaska-clip)">${alaskaLayer}${alaskaStates}</g><text x="${alaskaBox.x+4}" y="${alaskaBox.y+alaskaBox.h-2}" font-size="11" fill="#5b6b5b">Alaska (not to scale)</text>`:''}
+      <!-- Alaska is positioned as a floating, unframed map layer. It is drawn
+           before the Lower 48 so it cannot obscure contiguous-state details.
+           State outlines are rendered first; bold FVS Variant outlines sit above them. -->
+      <g class="variant-map-alaska-floating">${akLayer.fills}${alaskaStates}${akLayer.outlines}</g>
+      <g clip-path="url(#variantMapConusClip)">${conusLayer.fills}${conusStates}${conusLayer.outlines}</g>
+      ${akLayer.fills?`<text class="variant-map-alaska-label" x="${akBox.x+4}" y="${akBox.y+akBox.h-2}" font-size="11" fill="#5b6b5b">Alaska (not to scale)</text>`:''}
       ${pin}
     </svg>
     ${pin?'<div class="variant-map-note">The pin suggests a variant only. You may select a different Variant and Location above.</div>':''}
@@ -2079,6 +2104,12 @@ function render(){
   // ---- Stand Info ----
   if(ui.tab==='stand' && activeStand){
     const s=activeStand;
+    const tallyMethod=s.tally_method==='fixed'?'fixed':'variable';
+    const tallyValue=activeTallyValue(s);
+    const fixedTallyDenom=Math.abs(Number(s.baf_fixed||''));
+    const fixedTallyHint=Number.isFinite(fixedTallyDenom)&&fixedTallyDenom>0
+      ?`1/${formatNumber(fixedTallyDenom)} acre = ${fractionToRadius(fixedTallyDenom).toFixed(1)} ft radius`
+      :'— enter a non-zero denominator —';
     html+=`
     <div class="card" id="standInfoCard" oninput="onStandFormDraftEvent(event)" onchange="onStandFormDraftEvent(event)">
       <div class="section-title">Stand Info — ${escapeHTML(s.stand_id)} <span id="standInfoSaveBadge" class="stand-save-badge ${standInfoStatusClass(s.stand_id)}" aria-live="polite">${standInfoStatusLabel(s.stand_id)}</span></div>
@@ -2096,34 +2127,43 @@ function render(){
         </div>
         <div id="standVariantFields" class="variant-fields">${variantSpecificFieldsHTML(s.variant,s)}</div>
       </div>
-      <section class="sampling-section tree-tally-section" aria-labelledby="tree-tally-heading">
-        <div class="sampling-heading" id="tree-tally-heading">Tally trees measured with:</div>
-        <div class="row">
-          <div class="field tally-method-field"><label>Tree tally method</label>
-            <div class="method-toggle tally-method-toggle">
-              <button type="button" id="tallybtn_variable" class="${s.tally_method!=='fixed'?'active':''}" onclick="setStandTallyMethod('variable')">Variable BAF</button>
-              <button type="button" id="tallybtn_fixed" class="${s.tally_method==='fixed'?'active':''}" onclick="setStandTallyMethod('fixed')">Fixed Plot</button>
+      <div class="sampling-combined-row">
+        <section class="sampling-panel tree-tally-section" aria-labelledby="treeTallyHeading">
+          <div class="sampling-heading" id="treeTallyHeading">Tally trees measured with:</div>
+          <div class="row sampling-fields-row">
+            <div class="field tally-method-field">
+              <label>Tree tally method</label>
+              <input id="f_tally_method" type="hidden" value="${tallyMethod}">
+              <div class="method-toggle tally-method-toggle" role="group" aria-label="Tree tally method">
+                <button type="button" id="tallybtn_variable" class="${tallyMethod==='variable'?'active':''}" onclick="setTallyMethod('variable')">Variable BAF</button>
+                <button type="button" id="tallybtn_fixed" class="${tallyMethod==='fixed'?'active':''}" onclick="setTallyMethod('fixed')">Fixed Plot</button>
+              </div>
             </div>
+            <div class="field tally-value-field"><label id="f_tally_value_label">${tallyMethod==='fixed'?'Trees Fixed Plot (1/n acre)':'Variable BAF (ft²/ac)'}</label><input id="f_tally_value" type="number" value="${escapeAttr(tallyValue)}" step="${tallyMethod==='fixed'?'1':'0.1'}" placeholder="${tallyMethod==='fixed'?'e.g. 5':'e.g. 20'}" ${tallyMethod==='fixed'?'oninput="updateTreeTallyRadiusHint()"':''}></div>
+            <div class="field tally-radius-field" id="f_tally_radius_field" ${tallyMethod==='fixed'?'':'hidden'}><label>Fixed Plot Radius</label><span id="f_tally_radius_hint" class="muted radius-readout">${fixedTallyHint}</span></div>
           </div>
-          <div class="field tally-value-field"><label id="f_tally_value_label">${s.tally_method==='fixed'?'Trees Fixed Plot (1/n acre)':'Variable BAF (ft²/ac)'}</label><input id="f_tally_value" type="number" value="${escapeAttr(activeTallyValue(s))}" step="${s.tally_method==='fixed'?'1':'0.1'}" placeholder="${s.tally_method==='fixed'?'e.g. 5':'e.g. 20'}" oninput="updateTreeTallyRadiusHint()"></div>
-          <div class="field tally-radius-field" id="f_tree_radius_field" ${s.tally_method==='fixed'?'':'hidden'}><label>Fixed-plot radius</label><span id="f_tree_radius_hint" class="muted radius-readout">${s.tally_method==='fixed'&&Math.abs(Number(activeTallyValue(s)))>0?`1/${Math.abs(Number(activeTallyValue(s)))} acre = ${fractionToRadius(Math.abs(Number(activeTallyValue(s)))).toFixed(1)} ft radius`:'— enter a non-zero denominator —'}</span></div>
-          <div class="field dbh-mode-field"><label>DBH Entry Mode</label>
-            <div class="method-toggle">
-              <button type="button" id="dbhbtn_real" class="${s.dbh_mode!=='idbh'?'active':''}" onclick="setDbhMode('real')" title="Enter actual decimal DBH, example: 5.4&quot; enter as 5.4">RealDBH</button>
-              <button type="button" id="dbhbtn_idbh" class="${s.dbh_mode==='idbh'?'active':''}" onclick="setDbhMode('idbh')" title="Enter Integer DBH, example: for 5.4&quot; tree, enter 54, for 10.0&quot; tree, enter 100">IDBH</button>
-            </div>
+        </section>
+        <div class="sampling-section-divider" role="separator" aria-orientation="vertical"></div>
+        <section class="sampling-panel seedling-sampling-section" aria-labelledby="seedlingHeading">
+          <div class="sampling-heading seedling-heading" id="seedlingHeading">Seedling/Sapling</div>
+          <div class="row sampling-fields-row seedling-sampling-row">
+            <div class="field seedling-fixed-field"><label>Fixed Plot (1/N Acre)</label><input id="f_denom" type="number" value="${s.denom||'100'}" step="1" oninput="updateStandRadiusHint()"></div>
+            <div class="field seedling-radius-field"><label>Equivalent Radius</label><span id="f_radius_hint" class="muted radius-readout">1/${s.denom||'100'} acre = ${fractionToRadius(s.denom||'100').toFixed(2)} ft radius</span></div>
+          </div>
+        </section>
+      </div>
+      <div class="divider sampling-to-dbh-divider"></div>
+      <div class="row dbh-site-row">
+        <div class="field dbh-mode-field"><label>DBH Entry Mode</label>
+          <div class="method-toggle">
+            <button type="button" id="dbhbtn_real" class="${s.dbh_mode!=='idbh'?'active':''}" onclick="setDbhMode('real')" title="Enter actual decimal DBH, example: 5.4&quot; enter as 5.4">RealDBH</button>
+            <button type="button" id="dbhbtn_idbh" class="${s.dbh_mode==='idbh'?'active':''}" onclick="setDbhMode('idbh')" title="Enter Integer DBH, example: for 5.4&quot; tree, enter 54, for 10.0&quot; tree, enter 100">IDBH</button>
           </div>
         </div>
-      </section>
-      <div class="sampling-divider" role="separator"></div>
-      <section class="sampling-section seedling-section" aria-labelledby="seedling-heading">
-        <div class="sampling-heading" id="seedling-heading">Seedling/Sapling</div>
-        <div class="row">
-          <div class="field" style="flex:0 0 180px;"><label>Fixed Plot (1/n acre)</label><input id="f_denom" type="number" value="${s.denom||'100'}" step="1" oninput="updateStandRadiusHint()"></div>
-          <div class="field" style="flex:0 0 auto;"><label>Equivalent radius</label><span id="f_radius_hint" class="muted radius-readout">1/${s.denom||'100'} acre = ${fractionToRadius(s.denom||'100').toFixed(2)} ft radius</span></div>
-          <div class="field small"><label>Break DBH (in)</label><input id="f_brkdbh" type="number" value="${s.brk_dbh||'5'}" step="0.1" title="At/above Break DBH = tree tally method above; below Break DBH = seedling/sapling fixed plot"></div>
-        </div>
-      </section>
+        <div class="field dbh-break-field"><label>DBH Break (in)</label><input id="f_brkdbh" type="number" value="${s.brk_dbh||'5'}" step="0.1" title="At/above DBH Break = tally tree with selected method; below DBH Break = seedling/sapling fixed plot"></div>
+        <div class="field site-species-field"><label for="f_site_species">Site Species</label><select id="f_site_species" data-current-value="${escapeAttr(s.site_species||'')}" onchange="onSpeciesDropdownChange('site',this)" ${s.variant?'':'disabled'}>${speciesDropdownOptions(s,s.site_species,'site')}</select></div>
+        <div class="field site-index-field"><label for="f_site_index">Site Index</label><input id="f_site_index" type="number" step="1" inputmode="numeric" value="${escapeAttr(s.site_index||'')}"></div>
+      </div>
       <div class="divider"></div>
       <div class="row">
         <div class="field small"><label>Elev (ft)</label><input id="f_elev" type="number" value="${s.elevation}"></div>
@@ -2133,11 +2173,7 @@ function render(){
         <div class="field small"><label>Longitude</label><input id="f_lon" inputmode="decimal" autocomplete="off" value="${escapeAttr(s.longitude)}" data-variant-coordinate="${escapeAttr(String(s.longitude||'').trim())}" onblur="queueStandCoordinateEvaluation()"></div>
         <div class="field location-action-field"><label>Location tools</label><div class="location-action-buttons"><button class="secondary" onclick="captureLoc('f_lat','f_lon')">📍 Loc</button><button class="secondary" onclick="resetStandLocation()">Reset</button></div></div>
       </div>
-      <div class="row site-fields-row">
-        <div class="field wide"><label>Site Species</label><select id="f_site_species" data-previous="${escapeAttr(s.site_species||'')}" onchange="handleSpeciesSelectChange('site')">${speciesSelectOptions(s,s.site_species,'site')}</select></div>
-        <div class="field small"><label>Site Index</label><input id="f_site_index" type="number" step="1" inputmode="numeric" value="${escapeAttr(s.site_index||'')}"></div>
-      </div>
-      <div class="row"><div class="field wide"><label>Notes</label><textarea id="f_notes" rows="2">${escapeHTML(s.notes)}</textarea></div></div>
+      <div class="row"><div class="field wide"><label>Notes</label><textarea id="f_notes" rows="2">${escapeHTML(s.notes||'')}</textarea></div></div>
       <div class="divider"></div>
       <div class="stand-save-actions">
         <button onclick="saveStandForm()">Save Stand Info</button>
@@ -2195,7 +2231,7 @@ function render(){
         ${!activeStand.variant?`<div class="note-box">Set the stand's <strong>FVS Variant</strong> on the Stand Info tab to load its species list.</div>`:''}
         <div class="row tree-entry-row">
           <div class="field species-field" style="flex:3;min-width:220px;"><label for="t_species">Species</label>
-            <select id="t_species" data-previous="" onchange="handleSpeciesSelectChange('tree')">${speciesSelectOptions(activeStand,'','tree')}</select>
+            <select id="t_species" data-current-value="" onchange="onSpeciesDropdownChange('tree',this)" ${activeStand.variant?'':'disabled'}>${speciesDropdownOptions(activeStand,'','tree')}</select>
           </div>
           <div class="field" id="t_species_other_wrap" style="display:none;flex:0 0 90px;"><label>Custom</label><input id="t_species_other" placeholder="code"></div>
           <div class="field" style="flex:0 0 90px;"><label>Status</label>
@@ -2358,15 +2394,15 @@ WL  western larch"></textarea>
         <input type="file" id="importFile" accept=".xlsx,.csv,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,application/zip" multiple style="display:none" onchange="handleImportFile(event)">
         <button class="secondary" onclick="triggerImport()">⬆ Import Excel, CSV, or CSV ZIP</button>
       </div>
-      <section class="card references-card" aria-labelledby="references-heading">
-        <div class="section-title" id="references-heading">References</div>
-        <ul class="reference-links">
+      <div class="card references-card">
+        <div class="section-title">References</div>
+        <ul class="references-list">
           <li><a href="https://www.fs.usda.gov/fvs/" target="_blank" rel="noopener noreferrer">FVS Resources</a></li>
           <li><a href="https://www.fs.usda.gov/managing-land/forest-management/fvs/documents/guides" target="_blank" rel="noopener noreferrer">FVS User and Variant Guides</a></li>
           <li><a href="https://www.fs.usda.gov/fvs/support/index.shtml" target="_blank" rel="noopener noreferrer">FVS Technical Support</a></li>
         </ul>
-        <p class="reference-note"><strong>Note:</strong> This data collection tool is developed by the BIA Division of Forestry — Branch of Forest Inventory and Planning (FIP) and is not associated with USDA or FVS staff. Provided reference links can assist with user issues involving Forest Vegetation Simulator functionality, but not this data collection tool. For questions and concerns regarding plOtterFVS, please reach out directly to FIP.</p>
-      </section>`;
+        <div class="reference-note"><strong>Note:</strong> This data collection tool is developed by the BIA Division of Forestry — Branch of Forest Inventory and Planning (FIP) and is not associated with USDA or FVS staff. Provided reference links will assist with user issues involving the functionality of the Forest Vegetation Simulator, but not this data collection tool. For questions and concerns regarding plOtterFVS, please reach out directly to FIP at <a href="mailto:IA_Forestry@bia.gov">IA_Forestry@bia.gov</a>.</div>
+      </div>`;
   }
 
   app.innerHTML=html;

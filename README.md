@@ -1,15 +1,45 @@
 # plOtter: Stand Exam for FVS — Browser/PWA build
 
-## Revision 1.5.0
+## Revision 1.6.0
 
 This folder contains the mobile-compatible plOtterFVS Progressive Web App. The same static application runs in Safari on iPhone and iPad, Chrome on Android, and current desktop browsers. It does not require the original Windows `.cmd` or `.vbs` launchers.
 
-## Changes in revision 1.5.0
+## Changes in revision 1.6.0
+
+### Map line hierarchy
+
+- US state boundaries are now thin, faint gray lines.
+- FVS Variant boundaries are bold green lines and are rendered above the state boundaries.
+- Variant fills are rendered first, state outlines second, and Variant outlines last. This keeps state lines visible without allowing them to overpower the FVS coverage boundaries.
+- The recorded-location pin remains above all map layers.
+- Map clicking, one-time GPS suggestions, manual Variant/Location override, and the floating Alaska composition are unchanged.
+
+### Stand Info sampling and DBH layout
+
+- **Tally trees measured with** and **Seedling/Sapling** now share one row on wider screens.
+- A vertical separator distinguishes the two sampling sections. On narrower screens, the sections stack and the separator becomes horizontal.
+- The next row contains, in order: **DBH Entry Mode**, **DBH Break**, **Site Species**, and **Site Index**.
+- The Tally Trees **Fixed Plot Radius** field is shown only when **Fixed Plot** is selected. It is hidden in **Variable BAF** mode while the stand's remembered Fixed Plot denominator is retained.
+- Export mappings and save-state behavior are unchanged.
+
+### FIP contact link
+
+The References note now provides a direct email link to [IA_Forestry@bia.gov](mailto:IA_Forestry@bia.gov) for plOtterFVS questions and concerns.
+
+## Features retained from revision 1.5.1
+
+### Floating Alaska map layer
+
+- Alaska renders as an unframed, floating map layer in the lower-left map area.
+- The Alaska layer is drawn before the Lower 48, preventing it from obscuring contiguous-state details where the two display areas overlap.
+- Alaska's variant geometry, faint state outline, click behavior, coordinate pin placement, and GPS-based variant lookup are unchanged.
+
+## Features retained from revision 1.5.0
 
 ### FVS Variant map
 
 - The displayed FVS coverage geometry is dissolved by FVS Variant, so forest and Location-code boundaries inside a variant are no longer drawn.
-- Thin, faint state outlines are overlaid on the Lower 48 map and Alaska inset.
+- Thin, faint state outlines are overlaid on the Lower 48 map and floating Alaska layer.
 - State outlines have no fill, no labels, and do not intercept map clicks.
 - The original detailed FVS polygons remain embedded for latitude/longitude lookup; display simplification does not change automatic variant suggestions.
 - The recorded-location pin is drawn above both map layers.
@@ -75,7 +105,7 @@ Both the New Tree **Species** control and Stand Info **Site Species** control us
 
 ### Export references
 
-A separate **References** section at the bottom of Export includes links to FVS Resources, FVS User and Variant Guides, and FVS Technical Support, along with the requested BIA/FIP disclaimer. These external links require an internet connection; data collection and export remain offline-capable.
+A separate **References** section at the bottom of Export includes links to FVS Resources, FVS User and Variant Guides, and FVS Technical Support, along with the requested BIA/FIP disclaimer and a mail link to `IA_Forestry@bia.gov`. The web links require an internet connection and the email link requires a configured mail application; data collection and export remain offline-capable.
 
 ## Features retained from revision 1.4.0
 
@@ -174,9 +204,9 @@ The application uses relative paths and works from a GitHub Pages repository sub
 
 Open the application at least once while online before testing it in airplane mode.
 
-## Upgrading from revision 1.4.0
+## Upgrading from revision 1.4.0, 1.5.0, or 1.5.1
 
-Keep the same HTTPS URL and replace all application files together. Revision 1.4.0 data migrates to schema version 5:
+Keep the same HTTPS URL and replace all application files together. Revision 1.6.0 continues to use schema version 5. Data from revisions 1.5.0 and 1.5.1 remains compatible; revision 1.4.0 data migrates as follows:
 
 - positive legacy `BASAL_AREA_FACTOR` values become **Variable BAF**;
 - negative imported values become tree **Fixed Plot** denominators;
@@ -189,7 +219,7 @@ Make an Excel or CSV backup before publishing the update. After deployment, open
 The service-worker cache name is:
 
 ```text
-plotter-fvs-pwa-v1.5.0
+plotter-fvs-pwa-v1.6.0
 ```
 
 ## Moving data from the original Edge file
@@ -220,17 +250,18 @@ Export a backup regularly, preferably after every field session. Data can become
 Before operational use, test on representative iPhone/iPad and Android devices:
 
 1. Create a stand and confirm Location is required.
-2. Switch between Variable BAF and Fixed Plot and verify both remembered values.
-3. Verify the 1/n-acre radius display.
-4. Save Stand Info, add plots and trees, and confirm save-gating behavior.
-5. Open Species normally without a keyboard, then use **Search…** deliberately.
-6. Test Site Species and integer Site Index.
-7. Allow and deny the one-time location request.
-8. Confirm map pin, automatic suggestion, manual Variant/Location override, state overlay, and Reset.
-9. Close and reopen the app and verify records remain.
-10. Export Excel and CSV, then re-import the files.
-11. Open once online, enter airplane mode, relaunch, collect data, and export.
-12. Publish an update and confirm the service-worker update prompt works.
+2. Confirm the Tally Trees and Seedling/Sapling sections are visually separated and responsive.
+3. Switch between Variable BAF and Fixed Plot, verify both remembered values, and confirm Fixed Plot Radius is hidden in Variable BAF mode.
+4. Verify the 1/n-acre radius display.
+5. Save Stand Info, add plots and trees, and confirm save-gating behavior.
+6. Open Species normally without a keyboard, then use **Search…** deliberately.
+7. Test Site Species and integer Site Index.
+8. Allow and deny the one-time location request.
+9. Confirm map pin, automatic suggestion, manual Variant/Location override, faint gray state lines beneath bold green FVS Variant boundaries, and Reset.
+10. Close and reopen the app and verify records remain.
+11. Export Excel and CSV, then re-import the files.
+12. Open once online, enter airplane mode, relaunch, collect data, and export.
+13. Publish an update and confirm the service-worker update prompt works.
 
 ## Package contents
 

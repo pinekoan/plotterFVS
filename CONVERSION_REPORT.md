@@ -2,9 +2,9 @@
 
 ## Build identification
 
-- Application version: **1.5.0**
+- Application version: **1.6.0**
 - Data schema version: **5**
-- Service-worker cache: **`plotter-fvs-pwa-v1.5.0`**
+- Service-worker cache: **`plotter-fvs-pwa-v1.6.0`**
 - Build date shown in the application: **2026-07-15**
 
 ## Source assessment
@@ -17,7 +17,28 @@ The original Windows files did not contain the inventory business logic:
 
 The browser/PWA conversion therefore preserves the web-based workflow while replacing Windows launch assumptions, online library dependencies, and desktop-only delivery behavior.
 
-## Revision 1.5.0 implementation
+## Revision 1.6.0 implementation
+
+| Requested behavior | Implementation |
+|---|---|
+| Make state boundaries faint gray | State outlines use a thin gray stroke with reduced opacity and remain noninteractive |
+| Make FVS Variant boundaries bold green and visually dominant | Variant outlines use thicker green strokes; the selected Variant uses a darker, heavier green outline |
+| Draw Variant boundaries above state boundaries | Variant fills render first, state outlines second, and Variant outline-only paths last; the location pin remains above all three |
+| Put Tally Trees and Seedling/Sapling on one row | Wider layouts use a two-panel grid with both sampling concepts on the same row |
+| Add a separator between sampling concepts | A vertical separator appears between the two panels; below 980 CSS pixels it becomes horizontal as the panels stack |
+| Move DBH and site controls to the next row | DBH Entry Mode, DBH Break, Site Species, and Site Index render in that order on the following row and wrap responsively |
+| Hide Fixed Plot Radius in Variable BAF mode | The radius field uses the HTML `hidden` state and is shown only when Fixed Plot is selected; remembered method-specific values are unchanged |
+| Add the FIP email address | The References note links `IA_Forestry@bia.gov` with a `mailto:` URL |
+
+## Features retained from revision 1.5.1
+
+| Requested behavior | Implementation |
+|---|---|
+| Remove the box surrounding Alaska | Alaska remains an unframed floating layer |
+| Prevent Alaska's display area from covering the Lower 48 | The floating Alaska layer is rendered before the contiguous-state layer, so Lower 48 details remain visible in any overlap |
+| Preserve map behavior | Alaska geometry, state outline, click selection, GPS lookup, and recorded-location pin behavior are unchanged |
+
+## Features retained from revision 1.5.0
 
 | Requested behavior | Implementation |
 |---|---|
@@ -64,9 +85,11 @@ The detailed 255-feature layer remains the source for point-in-polygon detection
 
 The state data was simplified at build time and embedded in projected coordinates. Rendering produces:
 
-- one combined noninteractive state-outline path for the Lower 48;
-- one combined noninteractive state-outline path for the Alaska inset;
+- 48 noninteractive, faint-gray state-outline paths for the Lower 48;
+- one noninteractive, faint-gray state-outline path for floating Alaska;
 - no state fill or labels;
+- 19 dissolved FVS Variant fill paths beneath the state outlines;
+- 19 bold-green FVS Variant outline paths above the state outlines;
 - the recorded-location pin above all map layers.
 
 ## Data-model migration
@@ -101,42 +124,39 @@ Schema version 5 normalizes earlier stand records as follows:
 - Schema, species-code mapping, Crown Ratio values, and tree data mapping are unchanged.
 - TPA remains absent from the on-screen tree list and is not an added TreeInit field.
 
-## Automated browser validation
+## Automated validation
 
-Chromium tests were run at desktop and 390 × 844 CSS-pixel mobile viewports. This is automated browser testing, not physical-device testing.
+### Revision 1.6.0 source-level execution
 
-### Revision 1.5 controls
+The actual `app.js` and `map-data.js` files were executed together in a JavaScript VM. The test generated the real Stand Info and Export markup rather than testing a separately recreated mock.
 
-- Confirmed Location placeholder text and required-save validation.
-- Confirmed recent Location grouping, Variant filtering, deduplication, and order.
-- Confirmed Variable BAF / Fixed Plot switching retains independent values.
-- Confirmed entering `5` or `-5` as a tree Fixed Plot exports `-5`.
-- Confirmed 1/5 acre displays a 52.7-foot radius.
-- Confirmed Seedling/Sapling denominator remains independent and exports to `INV_PLOT_SIZE`.
-- Confirmed Site Species uses the active Variant list and exports its FVS code only to StandInit.
-- Confirmed Site Index rejects noninteger entries when supplied and is optional when blank.
-- Confirmed both species controls begin as native dropdowns, place Search near the top, and do not focus the search field automatically.
-- Confirmed tree-species count/recency ranking across plots and per-stand isolation.
-- Confirmed the displayed map has 19 clickable dissolved variant paths rather than 255 detailed feature paths.
-- Confirmed state outlines render as noninteractive overlays and map clicks remain available.
-- Confirmed map pin, automatic suggestion, unchanged-coordinate behavior, manual Variant/Location override, and Reset.
-- Confirmed References contains all three requested links with separate-window and `noopener noreferrer` handling.
-- Confirmed no duplicate element IDs or uncaught runtime errors in representative views.
+The execution test confirmed:
 
-### Prior-feature regression checks
+- desktop markup order is Tally Trees, separator, Seedling/Sapling, then DBH Entry Mode, DBH Break, Site Species, and Site Index;
+- Variable BAF markup hides Fixed Plot Radius;
+- Fixed Plot markup shows the radius and calculates 1/5 acre as 52.7 feet;
+- positive or negative Fixed Plot denominator `5` exports as `-5`, while Variable BAF `20` exports as `20`;
+- the map painter order is Variant fills, state boundaries, then Variant outlines;
+- state strokes are gray and thinner than the green Variant strokes;
+- the rendered map contains 19 dissolved clickable Variant regions, 19 Variant outline paths, and 49 state outline paths;
+- the floating Alaska layer has no inset clipping frame;
+- Stand Info markup contains no duplicate element IDs;
+- the References note contains the exact `mailto:IA_Forestry@bia.gov` link.
 
-- Save Stand Info gating continues to block plot/tree additions while never-saved or dirty.
-- Existing plots and trees remain visible while dirty.
-- Never-saved export is blocked.
-- Dirty saved export can use the last saved snapshot without discarding the current draft.
-- Southern hides PV fields, accepts optional Ecoregion, and propagates it to all stand/plot rows.
-- Crown Ratio labels retain underlying numeric FVS values.
-- Scientific names and PLANTS codes remain available on the Species Lists tab.
-- The Trees Entered list remains free of the TPA column.
+### Static and responsive-source checks
+
+- `app.js`, `service-worker.js`, `storage.js`, `pwa.js`, `fvs-xlsx.js`, and `map-data.js` passed JavaScript syntax checks.
+- CSS parsed without errors and contains the wider two-column sampling grid, the 980-pixel stacked breakpoint, and the horizontal separator rule.
+- Manifest JSON, icon dimensions, local HTML asset references, and all service-worker application-shell paths were verified.
+- Version strings are aligned to application/cache revision 1.6.0 and data schema 5.
+
+### Retained behavior checks
+
+The revision changes presentation, map painter order, and reference text; the data model and export/import functions are unchanged. Source-level execution also rechecked the Fixed Plot BAF conversion and radius calculation. The prior revision's save gating, Location validation/history, Site Species/Site Index mapping, Southern Ecoregion propagation, scientific names, Crown Ratio values, and unsaved-export safeguards remain in the same code paths.
 
 ## Reference import/export regression
 
-The supplied reference workbook and CSV files were re-tested against revision 1.5.0:
+The supplied reference workbook and CSV files were previously validated against revision 1.5.1:
 
 - Imported `FVS_Export_2026-07-13_095937.xlsx`.
 - Reconstructed **2 stands, 2 plots, and 11 trees**.
@@ -145,7 +165,7 @@ The supplied reference workbook and CSV files were re-tested against revision 1.
 - Reopened worksheet row counts were **2, 2, 11, and 2**.
 - Imported stands received clean saved snapshots under schema version 5.
 
-A separate workbook round trip verified negative Fixed Plot BAF, optional Site Species/Site Index, Southern Ecoregion, and two propagated plot rows.
+Revision 1.6.0 does not modify the export/import functions or schemas. A source-level execution test rechecked the negative Fixed Plot BAF conversion. The prior workbook round trip also covered optional Site Species/Site Index, Southern Ecoregion, and two propagated plot rows.
 
 ## Static and offline-package validation
 
@@ -154,10 +174,10 @@ A separate workbook round trip verified negative Fixed Plot BAF, optional Site S
 - Every service-worker application-shell path exists in the package.
 - All manifest icon files exist and retain their declared dimensions.
 - Runtime scripts and styles are local; no CDN is required for collection, storage, map display, or export.
-- Application, visible footer, schema, and cache versions are aligned to 1.5.0 / schema 5.
+- Application, visible footer, schema, and cache versions are aligned to 1.6.0 / schema 5.
 - Final ZIP contents and CRC values are checked with ZIP integrity testing.
 - A SHA-256 checksum is supplied beside the ZIP.
 
 ## Validation boundary
 
-The package has not been physically tested on the intended iPhone, iPad, or Android field devices. Before operational deployment, complete the acceptance checklist in `README.md`, particularly Safari/Chrome installation, native dropdown behavior, location permission presentation, share-sheet destinations, offline relaunch, and storage retention under the organization's device policies.
+The package has not been physically tested on the intended iPhone, iPad, or Android field devices. A current headless-browser screenshot pass could not be completed in this container, so revision 1.6.0 was validated through JavaScript execution and static package checks instead. Before operational deployment, complete the acceptance checklist in `README.md`, particularly the responsive Stand Info layout, Safari/Chrome installation, native dropdown behavior, location permission presentation, share-sheet destinations, offline relaunch, and storage retention under the organization's device policies.

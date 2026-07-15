@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'plotter-fvs-pwa-v1.5.0';
+const CACHE_VERSION = 'plotter-fvs-pwa-v1.6.0';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,6 +6,7 @@ const APP_SHELL = [
   './app.js',
   './storage.js',
   './pwa.js',
+  './map-data.js',
   './fvs-xlsx.js',
   './manifest.webmanifest',
   './vendor/jszip.min.js',
