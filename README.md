@@ -1,30 +1,53 @@
 # plOtter: Stand Exam for FVS — Browser/PWA build
 
-## Revision 1.6.0
+## Revision 1.7.0
 
 This folder contains the mobile-compatible plOtterFVS Progressive Web App. The same static application runs in Safari on iPhone and iPad, Chrome on Android, and current desktop browsers. It does not require the original Windows `.cmd` or `.vbs` launchers.
 
-## Changes in revision 1.6.0
+## Changes in revision 1.7.0
 
-### Map line hierarchy
+### Sampling Design and DBH Break
 
-- US state boundaries are now thin, faint gray lines.
-- FVS Variant boundaries are bold green lines and are rendered above the state boundaries.
-- Variant fills are rendered first, state outlines second, and Variant outlines last. This keeps state lines visible without allowing them to overpower the FVS coverage boundaries.
-- The recorded-location pin remains above all map layers.
-- Map clicking, one-time GPS suggestions, manual Variant/Location override, and the floating Alaska composition are unchanged.
+- Stand Info now groups the tally-tree method, DBH Break, and nested seedling/sapling plot under the heading **Sampling Design**.
+- **Measure tally trees using:** replaces the former tally-tree wording.
+- **Nested seedling/sapling plot:** replaces the former Seedling/Sapling wording.
+- DBH Break appears between the tally-tree and nested seedling/sapling sections, with separators between all three sections. The layout stacks responsively on narrower screens.
+- DBH Break is always entered as **Actual DBH (RealDBH)**, even when tree entry uses IDBH.
+- DBH Break displays and stores one decimal place; the default is **5.0**.
 
-### Stand Info sampling and DBH layout
+### Searchable Location selection
 
-- **Tally trees measured with** and **Seedling/Sapling** now share one row on wider screens.
-- A vertical separator distinguishes the two sampling sections. On narrower screens, the sections stack and the separator becomes horizontal.
-- The next row contains, in order: **DBH Entry Mode**, **DBH Break**, **Site Species**, and **Site Index**.
-- The Tally Trees **Fixed Plot Radius** field is shown only when **Fixed Plot** is selected. It is hidden in **Variable BAF** mode while the stand's remembered Fixed Plot denominator is retained.
-- Export mappings and save-state behavior are unchanged.
+- **Search…** is the first option in the Location dropdown.
+- Opening the Location dropdown does not focus a text field or summon the mobile keyboard.
+- Selecting **Search…** opens a searchable Location picker; canceling preserves the previous selection.
+- Search matches Location code or name and retains the existing recently-used grouping.
 
-### FIP contact link
+### FVS Variant map boundaries
 
-The References note now provides a direct email link to [IA_Forestry@bia.gov](mailto:IA_Forestry@bia.gov) for plOtterFVS questions and concerns.
+- FVS Variant boundaries are now thin black lines: 1.5 px normally and 2 px for the selected Variant.
+- The selected Variant fill color is unchanged.
+- Faint gray state outlines, layer order, map selection, GPS suggestions, and the floating Alaska composition are unchanged.
+
+### Compact tree damage entry
+
+- **Dmg 2** and **Sev 2** are hidden until **Dmg 1** is selected.
+- Clearing Dmg 1 hides and clears the secondary-damage values so hidden data is not saved.
+
+### Seedling/sapling record indicator
+
+- A seedling icon appears next to the tree number in **Trees Entered** and **Review Data** when tree DBH is strictly below the stand's DBH Break.
+- A tree equal to the break is treated as a tally tree and does not receive the icon.
+
+### Compatibility
+
+Revision 1.7.0 retains data schema version 5 and does not change the FVS export workbook or CSV schemas.
+
+## Features retained from revision 1.6.0
+
+- US state boundaries remain thin, faint gray lines beneath the FVS Variant outlines.
+- Variant fills render first, state outlines second, and Variant outlines last; the recorded-location pin remains above all map layers.
+- Tree Fixed Plot Radius remains visible only when **Fixed Plot** is selected, while method-specific values are remembered.
+- The References note retains the direct [IA_Forestry@bia.gov](mailto:IA_Forestry@bia.gov) contact link.
 
 ## Features retained from revision 1.5.1
 
@@ -49,14 +72,14 @@ The References note now provides a direct email link to [IA_Forestry@bia.gov](ma
 
 Stand Info now separates the two sampling concepts:
 
-1. **Tally trees measured with**
+1. **Measure tally trees using:**
    - **Variable BAF** is the default for new stands.
    - **Fixed Plot** changes the input to **Trees Fixed Plot (1/n acre)** and shows the calculated radius.
    - The program remembers a separate value for Variable BAF and tree Fixed Plot when the user switches methods.
    - Variable BAF exports its entered value to `BASAL_AREA_FACTOR`.
    - Tree Fixed Plot exports the negative absolute denominator to `BASAL_AREA_FACTOR`: `5` or `-5` exports as `-5`.
 
-2. **Seedling/Sapling**
+2. **Nested seedling/sapling plot:**
    - The existing **Fixed Plot (1/n acre)** denominator remains independent.
    - It continues to export to `INV_PLOT_SIZE`.
    - Its equivalent radius remains visible.
@@ -71,7 +94,10 @@ For example, a 1/5-acre plot displays a radius of approximately 52.7 feet.
 
 ### Required and recently used Locations
 
-- The empty Location option now reads **- Select / Required -**.
+- The empty Location option reads **- Select / Required -**.
+- **Search…** is the first option. Selecting it opens a searchable picker without making search the dropdown default.
+- Opening the native Location dropdown alone does not summon the mobile keyboard.
+- Canceling Location search preserves the prior Location selection.
 - **Save Stand Info** is blocked until a Location valid for the selected FVS Variant is chosen.
 - The invalid field receives focus and a clear message is displayed.
 - Locations saved for other stands in the current inventory appear under **Recently used** at the top of the list.
@@ -204,9 +230,9 @@ The application uses relative paths and works from a GitHub Pages repository sub
 
 Open the application at least once while online before testing it in airplane mode.
 
-## Upgrading from revision 1.4.0, 1.5.0, or 1.5.1
+## Upgrading from revisions 1.4.0 through 1.6.0
 
-Keep the same HTTPS URL and replace all application files together. Revision 1.6.0 continues to use schema version 5. Data from revisions 1.5.0 and 1.5.1 remains compatible; revision 1.4.0 data migrates as follows:
+Keep the same HTTPS URL and replace all application files together. Revision 1.7.0 continues to use schema version 5. Data from revisions 1.5.0 through 1.6.0 remains compatible; revision 1.4.0 data migrates as follows:
 
 - positive legacy `BASAL_AREA_FACTOR` values become **Variable BAF**;
 - negative imported values become tree **Fixed Plot** denominators;
@@ -219,7 +245,7 @@ Make an Excel or CSV backup before publishing the update. After deployment, open
 The service-worker cache name is:
 
 ```text
-plotter-fvs-pwa-v1.6.0
+plotter-fvs-pwa-v1.7.0
 ```
 
 ## Moving data from the original Edge file
@@ -250,18 +276,21 @@ Export a backup regularly, preferably after every field session. Data can become
 Before operational use, test on representative iPhone/iPad and Android devices:
 
 1. Create a stand and confirm Location is required.
-2. Confirm the Tally Trees and Seedling/Sapling sections are visually separated and responsive.
-3. Switch between Variable BAF and Fixed Plot, verify both remembered values, and confirm Fixed Plot Radius is hidden in Variable BAF mode.
-4. Verify the 1/n-acre radius display.
-5. Save Stand Info, add plots and trees, and confirm save-gating behavior.
-6. Open Species normally without a keyboard, then use **Search…** deliberately.
-7. Test Site Species and integer Site Index.
-8. Allow and deny the one-time location request.
-9. Confirm map pin, automatic suggestion, manual Variant/Location override, faint gray state lines beneath bold green FVS Variant boundaries, and Reset.
-10. Close and reopen the app and verify records remain.
-11. Export Excel and CSV, then re-import the files.
-12. Open once online, enter airplane mode, relaunch, collect data, and export.
-13. Publish an update and confirm the service-worker update prompt works.
+2. Open Location normally and confirm the keyboard stays closed; then choose **Search…**, filter the list, select a result, and test Cancel.
+3. Confirm the **Sampling Design** heading, labels, three-section order, separators, and stacked mobile layout.
+4. Switch between RealDBH and IDBH and confirm DBH Break remains Actual DBH, defaults to **5.0**, and formats entries to one decimal place.
+5. Switch between Variable BAF and Fixed Plot, verify both remembered values, and confirm Fixed Plot Radius is hidden in Variable BAF mode.
+6. Verify the nested seedling/sapling 1/n-acre radius display.
+7. Save Stand Info, add plots and trees, and confirm save-gating behavior.
+8. Confirm Dmg 2 and Sev 2 remain hidden until Dmg 1 is selected and clear when Dmg 1 is removed.
+9. Enter trees below, equal to, and above DBH Break; confirm only below-break records show the seedling icon in Trees Entered and Review Data.
+10. Open Species normally without a keyboard, then use **Search…** deliberately.
+11. Test Site Species, integer Site Index, and one-time location permission allow/deny behavior.
+12. Confirm map pin, automatic suggestion, manual Variant/Location override, faint gray state lines, thin black FVS Variant boundaries, unchanged selected fill, and Reset.
+13. Close and reopen the app and verify records remain.
+14. Export Excel and CSV, then re-import the files.
+15. Open once online, enter airplane mode, relaunch, collect data, and export.
+16. Publish an update and confirm the service-worker update prompt works.
 
 ## Package contents
 
@@ -273,6 +302,7 @@ plOtterFVS-PWA/
 ├── storage.js
 ├── pwa.js
 ├── fvs-xlsx.js
+├── map-data.js
 ├── manifest.webmanifest
 ├── service-worker.js
 ├── assets/icons/

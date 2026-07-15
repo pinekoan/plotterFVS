@@ -155,7 +155,7 @@ function normalizeState(saved){
     }
     stand.baf=stand.tally_method==='fixed'?String(stand.baf_fixed||''):String(stand.baf_variable||'');
     if(stand.denom===undefined || stand.denom===null || stand.denom==="") stand.denom="100";
-    if(stand.brk_dbh===undefined || stand.brk_dbh===null || stand.brk_dbh==="") stand.brk_dbh="5";
+    stand.brk_dbh=formatDbhBreakValue(stand.brk_dbh);
     if(!stand.dbh_mode) stand.dbh_mode="real";
     if(stand.variant==='SN'){
       stand.pv_code="";
@@ -189,7 +189,7 @@ function normalizeState(saved){
         }
         sourceSnapshot.baf=sourceSnapshot.tally_method==='fixed'?String(sourceSnapshot.baf_fixed||''):String(sourceSnapshot.baf_variable||'');
         if(sourceSnapshot.denom===undefined||sourceSnapshot.denom===null||sourceSnapshot.denom==='') sourceSnapshot.denom='100';
-        if(sourceSnapshot.brk_dbh===undefined||sourceSnapshot.brk_dbh===null||sourceSnapshot.brk_dbh==='') sourceSnapshot.brk_dbh='5';
+        sourceSnapshot.brk_dbh=formatDbhBreakValue(sourceSnapshot.brk_dbh);
         if(!sourceSnapshot.dbh_mode) sourceSnapshot.dbh_mode='real';
         if(sourceSnapshot.variant==='SN'){ sourceSnapshot.pv_code=''; sourceSnapshot.pv_ref_code=''; }
         snapshot=standInfoSnapshot(sourceSnapshot);
@@ -378,7 +378,8 @@ function captureStandFormDraft(options){
   const value=(id,current)=>{ const el=g(id); return el?el.value:current; };
   stand.variant=String(value('f_variant',stand.variant)||'').trim();
   stand.inv_year=value('f_invyear',stand.inv_year);
-  stand.location=String(value('f_location',stand.location)||'').trim();
+  const location=String(value('f_location',stand.location)||'').trim();
+  if(location!=='__SEARCH__') stand.location=location;
   stand.crew=String(value('f_crew',stand.crew)||'').trim();
   stand.date=value('f_date',stand.date);
   if(stand.variant==='SN'){
@@ -441,6 +442,31 @@ function escapeHTML(value){
   return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
 }
 function escapeAttr(value){ return escapeHTML(value); }
+function formatDbhBreakValue(value, fallback="5.0"){
+  const raw=String(value??"").trim();
+  if(raw==="") return fallback;
+  const numeric=Number(raw);
+  return Number.isFinite(numeric)?numeric.toFixed(1):fallback;
+}
+function formatDbhBreakInput(input){
+  if(!input) return;
+  input.value=formatDbhBreakValue(input.value);
+  captureStandFormDraft();
+}
+function isSeedlingSaplingTree(tree, stand){
+  const dbhText=String(tree&&tree.dbh!==undefined?tree.dbh:'').trim();
+  const breakText=String(stand&&stand.brk_dbh!==undefined?stand.brk_dbh:'').trim();
+  if(!dbhText||!breakText) return false;
+  const dbh=Number(dbhText), breakDbh=Number(breakText);
+  return Number.isFinite(dbh)&&Number.isFinite(breakDbh)&&dbh<breakDbh;
+}
+function seedlingSaplingIcon(tree, stand){
+  if(!isSeedlingSaplingTree(tree,stand)) return '';
+  const dbh=Number(tree.dbh);
+  const breakDbh=formatDbhBreakValue(stand.brk_dbh);
+  const label=`Seedling/sapling: DBH ${dbh} in is below the ${breakDbh} in DBH Break`;
+  return `<span class="seedling-tree-icon" role="img" aria-label="${escapeAttr(label)}" title="${escapeAttr(label)}">🌱</span>`;
+}
 function treeStandId(tree){
   if(tree&&tree.stand_id) return tree.stand_id;
   const plot=tree&&state.plots[tree.plot_key];
@@ -706,7 +732,7 @@ function newStand(){
       district:"", location:"", crew:"", date:new Date().toISOString().slice(0,10),
       site_species:"", site_index:"", pv_code:"", pv_ref_code:"", ecoregion:"", elevation:"",
       latitude:"", longitude:"", slope:"", aspect:"", state_cd:"", county:"", notes:"",
-      tally_method:"variable", baf_variable:"", baf_fixed:"", baf:"", denom:"100", brk_dbh:"5", dbh_mode:"real"
+      tally_method:"variable", baf_variable:"", baf_fixed:"", baf:"", denom:"100", brk_dbh:"5.0", dbh_mode:"real"
     };
     markStandInfoNeverSaved(key);
     state.activeStand=key; state.activePlot=null; saveState(); render();
@@ -757,7 +783,12 @@ function setStandVariantSelection(nextVariant, source, options){
     s.location='';
     s.site_species='';
   }else if(loc) s.location=loc.value;
-  if(loc) loc.innerHTML=locationOptions(next,changed?'':s.location);
+  if(loc){
+    const locationValue=changed?'':s.location;
+    loc.innerHTML=locationOptions(next,locationValue);
+    loc.value=locationValue;
+    loc.dataset.currentValue=locationValue;
+  }
   updateVariantSpecificFields(next);
   updateSiteSpeciesOptions();
   updateVariantMap();
@@ -777,6 +808,11 @@ function onStandVariantChange(){
 async function saveStandForm(){
   const s=state.stands[state.activeStand]; if(!s) return;
   captureStandFormDraft({persist:false});
+  s.brk_dbh=formatDbhBreakValue(s.brk_dbh);
+  const breakInput=document.getElementById('f_brkdbh');
+  if(breakInput) breakInput.value=s.brk_dbh;
+  refreshStandInfoDirty(s.stand_id);
+  updateStandInfoStatusDisplay(s.stand_id);
   if(!s.variant){
     toast("⚠ Select an FVS Variant to save the stand");
     document.getElementById('f_variant')?.focus();
@@ -986,12 +1022,15 @@ function addTree(){
   const st=state.stands[plot.stand_id];
   let dbhVal=g('t_dbh').value;
   if(dbhVal!==''){ let n=parseFloat(dbhVal); if(isNaN(n)) n=0; if(st&&st.dbh_mode==='idbh') n=n/10; if(n<0) n=0; dbhVal=String(n); }
+  const damage1=g('t_dmg1').value;
+  const hasPrimaryDamage=!!damage1;
   state.trees[key]={
     tree_key:key, plot_key:plot.plot_key, stand_id:plot.stand_id, tree_id:plot.treeCounter,
     count:g('t_count').value||"1", species, status:g('t_status').value,
     dbh:dbhVal, ht:g('t_ht').value, crown_ratio:g('t_cr').value, age:g('t_age').value,
-    damage1:g('t_dmg1').value, severity1:(g('t_sev1')?g('t_sev1').value:""),
-    damage2:g('t_dmg2').value, severity2:(g('t_sev2')?g('t_sev2').value:"")
+    damage1, severity1:(g('t_sev1')?g('t_sev1').value:""),
+    damage2:(hasPrimaryDamage&&g('t_dmg2')?g('t_dmg2').value:""),
+    severity2:(hasPrimaryDamage&&g('t_sev2')?g('t_sev2').value:"")
   };
   saveState(); render(); toast("Tree #"+state.trees[key].tree_id+" added");
 }
@@ -1339,7 +1378,7 @@ function mkStandFromRow(id,r,m){
     pv_code:variant==='SN'?'':String(r.PV_CODE||'').trim(), pv_ref_code:variant==='SN'?'':String(r.PV_REF_CODE||'').trim(),
     elevation:r.ELEVFT||'', latitude:r.LATITUDE||'', longitude:r.LONGITUDE||'',
     slope:r.SLOPE||'', aspect:r.ASPECT||'', state_cd:'',county:'', notes:(m&&m.NOTES)||'',
-    ...tally, denom:(r.INV_PLOT_SIZE!==undefined?String(r.INV_PLOT_SIZE):''), brk_dbh:(r.BRK_DBH!==undefined?String(r.BRK_DBH):''), dbh_mode:'real' };
+    ...tally, denom:(r.INV_PLOT_SIZE!==undefined?String(r.INV_PLOT_SIZE):''), brk_dbh:formatDbhBreakValue(r.BRK_DBH), dbh_mode:'real' };
 }
 function importWorkbook(wb){
   importData({
@@ -1475,31 +1514,122 @@ function recentLocationsForVariant(variant, codes){
   return recent.map(String).filter((code,index,array)=>valid.has(code)&&array.indexOf(code)===index);
 }
 function locationOptions(variant, selected){
+  const requested=String(selected||'');
+  const current=requested==='__SEARCH__'?'':requested;
   const codes = sortLocationCodes(LOCATION_CODES[variant] || [], variant);
   const byCode=new Map(codes.map(item=>[String(item[0]),item]));
   const recent=recentLocationsForVariant(variant,codes);
-  let opts = `<option value="" ${selected?'':'selected'}>- Select / Required -</option>`;
+  let opts = `<option value="__SEARCH__" ${variant?'':'disabled'}>Search…</option>`;
+  opts += `<option value="" ${current?'':'selected'}>- Select / Required -</option>`;
   if(recent.length){
     opts += `<optgroup label="Recently used">`+recent.map(code=>{
-      const item=byCode.get(code); return `<option value="${escapeAttr(code)}" ${code===String(selected)?'selected':''}>${escapeHTML(code)} — ${escapeHTML(item?item[1]:'')}</option>`;
+      const item=byCode.get(code); return `<option value="${escapeAttr(code)}" ${code===current?'selected':''}>${escapeHTML(code)} — ${escapeHTML(item?item[1]:'')}</option>`;
     }).join('')+`</optgroup>`;
   }
   const recentSet=new Set(recent);
   const remaining=codes.filter(item=>!recentSet.has(String(item[0])));
   if(remaining.length){
-    opts += `<optgroup label="All locations">`+remaining.map(([c,n])=>`<option value="${escapeAttr(c)}" ${String(c)===String(selected)?'selected':''}>${escapeHTML(c)} — ${escapeHTML(n)}</option>`).join("")+`</optgroup>`;
+    opts += `<optgroup label="All locations">`+remaining.map(([c,n])=>`<option value="${escapeAttr(c)}" ${String(c)===current?'selected':''}>${escapeHTML(c)} — ${escapeHTML(n)}</option>`).join("")+`</optgroup>`;
   }
-  if(selected && !codes.some(x=>String(x[0])===String(selected))){
-    opts += `<option value="${escapeAttr(selected)}" selected>${escapeHTML(selected)} (custom)</option>`;
+  if(current && !codes.some(x=>String(x[0])===current)){
+    opts += `<option value="${escapeAttr(current)}" selected>${escapeHTML(current)} (custom)</option>`;
   }
   return opts;
+}
+function locationPickerEntries(variant, query){
+  const codes=sortLocationCodes(LOCATION_CODES[variant]||[],variant);
+  const byCode=new Map(codes.map(item=>[String(item[0]),item]));
+  const recentCodes=recentLocationsForVariant(variant,codes);
+  const recentSet=new Set(recentCodes);
+  const terms=String(query||'').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const matches=([code,name])=>{
+    if(!terms.length) return true;
+    const hay=(String(code)+' '+String(name||'')).toLowerCase();
+    return terms.every(term=>hay.includes(term));
+  };
+  const toEntry=([code,name])=>({code:String(code),name:String(name||'')});
+  return {
+    recent:recentCodes.map(code=>byCode.get(code)).filter(item=>item&&matches(item)).map(toEntry),
+    remaining:codes.filter(item=>!recentSet.has(String(item[0]))&&matches(item)).map(toEntry)
+  };
+}
+function locationSearchResultHTML(entry){
+  return `<button type="button" class="species-option location-option" data-code="${escapeAttr(entry.code)}" onclick="chooseLocationSearchResult(this.dataset.code)"><span><strong>${escapeHTML(entry.code)}</strong> — ${escapeHTML(entry.name)}</span></button>`;
+}
+let locationSearchState=null;
+function locationSearchResultsHTML(query){
+  if(!locationSearchState) return '';
+  const sections=locationPickerEntries(locationSearchState.variant,query);
+  let html='';
+  if(sections.recent.length) html+=`<div class="species-group-label">Recently used</div>${sections.recent.map(locationSearchResultHTML).join('')}`;
+  if(sections.remaining.length) html+=`<div class="species-group-label">${sections.recent.length?'All other locations':'All locations'}</div>${sections.remaining.map(locationSearchResultHTML).join('')}`;
+  if(!sections.recent.length&&!sections.remaining.length) html+='<div class="species-no-results">No matching locations.</div>';
+  return html;
+}
+function renderLocationSearchResults(){
+  const input=document.getElementById('locationSearchInput');
+  const results=document.getElementById('locationSearchResults');
+  if(results) results.innerHTML=locationSearchResultsHTML(input?input.value:'');
+}
+function closeLocationSearch(){
+  const overlay=document.getElementById('locationSearchOverlay');
+  if(overlay) overlay.remove();
+  locationSearchState=null;
+}
+function openLocationSearch(select){
+  const stand=state.stands[state.activeStand];
+  const previous=String((select&&select.dataset.currentValue)||(stand&&stand.location)||'');
+  if(select) select.value=previous;
+  if(!stand||!stand.variant){
+    toast('Select an FVS Variant first');
+    return;
+  }
+  closeLocationSearch();
+  locationSearchState={selectId:select&&select.id,standId:stand.stand_id,variant:stand.variant,previous};
+  const overlay=document.createElement('div');
+  overlay.id='locationSearchOverlay';
+  overlay.className='modal-overlay species-search-overlay location-search-overlay';
+  overlay.innerHTML=`<div class="species-search-dialog location-search-dialog" role="dialog" aria-modal="true" aria-labelledby="location-search-title">
+    <div class="species-search-header"><h2 id="location-search-title">Search Locations</h2><button type="button" class="secondary" onclick="closeLocationSearch()">Cancel</button></div>
+    <label for="locationSearchInput">Location code or name</label>
+    <input id="locationSearchInput" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. 503, Tongass, or reservation" oninput="renderLocationSearchResults()">
+    <div id="locationSearchResults" class="species-search-results" role="listbox"></div>
+  </div>`;
+  document.body.appendChild(overlay);
+  renderLocationSearchResults();
+  window.setTimeout(()=>document.getElementById('locationSearchInput')?.focus(),30);
+}
+function chooseLocationSearchResult(code){
+  if(!locationSearchState) return;
+  const select=document.getElementById(locationSearchState.selectId);
+  if(select){
+    select.value=code;
+    if(select.value!==code){
+      const option=document.createElement('option');
+      option.value=code; option.textContent=code;
+      select.appendChild(option); select.value=code;
+    }
+    select.dataset.currentValue=code;
+  }
+  closeLocationSearch();
+  captureStandFormDraft();
+}
+function onLocationDropdownChange(select){
+  if(!select) return;
+  if(select.value==='__SEARCH__'){
+    openLocationSearch(select);
+    return;
+  }
+  select.dataset.currentValue=select.value;
 }
 function updateLocationOptions(selected){
   const vSel=document.getElementById('f_variant');
   const lSel=document.getElementById('f_location');
   if(!vSel||!lSel) return;
-  const keep=selected!==undefined?selected:lSel.value;
+  const keep=String(selected!==undefined?selected:(lSel.dataset.currentValue||lSel.value)||'');
   lSel.innerHTML=locationOptions(vSel.value,keep);
+  lSel.value=keep;
+  lSel.dataset.currentValue=keep;
 }
 
 // ============================================================
@@ -1946,10 +2076,10 @@ function mapLayer(dst, proj, sel){
     const region=`class="variant-region" d="${d}" fill-rule="evenodd" style="cursor:pointer;" onclick="pickVariant('${variant}')"`;
     if(variant===sel){
       selectedFill+=`<path ${region} fill="var(--accent)" fill-opacity="0.84">${title}</path>`;
-      selectedOutline+=`<path class="variant-boundary selected" d="${d}" fill="none" stroke="#145d2c" stroke-width="3" vector-effect="non-scaling-stroke" pointer-events="none"></path>`;
+      selectedOutline+=`<path class="variant-boundary selected" d="${d}" fill="none" stroke="#000000" stroke-width="2" vector-effect="non-scaling-stroke" pointer-events="none"></path>`;
     }else{
       baseFills+=`<path ${region} fill="#e5ede5">${title}</path>`;
-      baseOutlines+=`<path class="variant-boundary" d="${d}" fill="none" stroke="#218249" stroke-width="2.2" vector-effect="non-scaling-stroke" pointer-events="none"></path>`;
+      baseOutlines+=`<path class="variant-boundary" d="${d}" fill="none" stroke="#000000" stroke-width="1.5" vector-effect="non-scaling-stroke" pointer-events="none"></path>`;
     }
   }
   return {fills:baseFills+selectedFill,outlines:baseOutlines+selectedOutline};
@@ -2007,13 +2137,13 @@ function standMapSVG(selected,latitude,longitude){
   return `
   <div class="variant-map-card">
     <div class="muted variant-map-caption">FVS Variant coverage — <strong>${escapeHTML(nm)}</strong> <span>· click a region to select manually${pin?' · red pin = recorded coordinates':''}</span></div>
-    <svg viewBox="0 0 960 600" class="variant-map-svg" role="img" aria-label="Dissolved FVS Variant coverage map with faint gray state boundaries beneath bold green FVS Variant boundaries and floating Alaska${pin?' and recorded-location pin':''}">
+    <svg viewBox="0 0 960 600" class="variant-map-svg" role="img" aria-label="Dissolved FVS Variant coverage map with faint gray state boundaries beneath thin black FVS Variant boundaries and floating Alaska${pin?' and recorded-location pin':''}">
       <defs>
         <clipPath id="variantMapConusClip"><rect x="${conusBox.x}" y="${conusBox.y}" width="${conusBox.w}" height="${conusBox.h}"></rect></clipPath>
       </defs>
       <!-- Alaska is positioned as a floating, unframed map layer. It is drawn
            before the Lower 48 so it cannot obscure contiguous-state details.
-           State outlines are rendered first; bold FVS Variant outlines sit above them. -->
+           State outlines are rendered first; black FVS Variant outlines sit above them. -->
       <g class="variant-map-alaska-floating">${akLayer.fills}${alaskaStates}${akLayer.outlines}</g>
       <g clip-path="url(#variantMapConusClip)">${conusLayer.fills}${conusStates}${conusLayer.outlines}</g>
       ${akLayer.fills?`<text class="variant-map-alaska-label" x="${akBox.x+4}" y="${akBox.y+akBox.h-2}" font-size="11" fill="#5b6b5b">Alaska (not to scale)</text>`:''}
@@ -2068,6 +2198,19 @@ function onDamageChange(idx){
   const dmg=document.getElementById('t_dmg'+idx);
   const cell=document.getElementById('t_sevcell'+idx);
   if(dmg&&cell) cell.innerHTML=severityFieldHTML(idx, dmg.value, '');
+  if(idx===1) setSecondaryDamageVisibility(!!(dmg&&dmg.value));
+}
+function setSecondaryDamageVisibility(show){
+  const damageField=document.getElementById('t_dmg2_field');
+  const severityField=document.getElementById('t_sev2_field');
+  const damage=document.getElementById('t_dmg2');
+  const severityCell=document.getElementById('t_sevcell2');
+  if(damageField) damageField.hidden=!show;
+  if(severityField) severityField.hidden=!show;
+  if(!show){
+    if(damage) damage.value='';
+    if(severityCell) severityCell.innerHTML=severityFieldHTML(2,'','');
+  }
 }
 
 function render(){
@@ -2122,37 +2265,48 @@ function render(){
         <div class="field small"><label>Date</label><input id="f_date" type="date" value="${s.date}"></div>
       </div>
       <div class="row">
-        <div class="field wide"><label>Location</label>
-          <select id="f_location">${locationOptions(s.variant, s.location)}</select>
+        <div class="field wide"><label for="f_location">Location</label>
+          <select id="f_location" data-current-value="${escapeAttr(s.location||'')}" onchange="onLocationDropdownChange(this)">${locationOptions(s.variant, s.location)}</select>
         </div>
         <div id="standVariantFields" class="variant-fields">${variantSpecificFieldsHTML(s.variant,s)}</div>
       </div>
-      <div class="sampling-combined-row">
-        <section class="sampling-panel tree-tally-section" aria-labelledby="treeTallyHeading">
-          <div class="sampling-heading" id="treeTallyHeading">Tally trees measured with:</div>
-          <div class="row sampling-fields-row">
-            <div class="field tally-method-field">
-              <label>Tree tally method</label>
-              <input id="f_tally_method" type="hidden" value="${tallyMethod}">
-              <div class="method-toggle tally-method-toggle" role="group" aria-label="Tree tally method">
-                <button type="button" id="tallybtn_variable" class="${tallyMethod==='variable'?'active':''}" onclick="setTallyMethod('variable')">Variable BAF</button>
-                <button type="button" id="tallybtn_fixed" class="${tallyMethod==='fixed'?'active':''}" onclick="setTallyMethod('fixed')">Fixed Plot</button>
+      <section class="sampling-design-section" aria-labelledby="samplingDesignHeading">
+        <h2 class="sampling-design-heading" id="samplingDesignHeading">Sampling Design</h2>
+        <div class="sampling-combined-row">
+          <section class="sampling-panel tree-tally-section" aria-labelledby="treeTallyHeading">
+            <div class="sampling-heading" id="treeTallyHeading">Measure tally trees using:</div>
+            <div class="row sampling-fields-row">
+              <div class="field tally-method-field">
+                <label>Tree tally method</label>
+                <input id="f_tally_method" type="hidden" value="${tallyMethod}">
+                <div class="method-toggle tally-method-toggle" role="group" aria-label="Tree tally method">
+                  <button type="button" id="tallybtn_variable" class="${tallyMethod==='variable'?'active':''}" onclick="setTallyMethod('variable')">Variable BAF</button>
+                  <button type="button" id="tallybtn_fixed" class="${tallyMethod==='fixed'?'active':''}" onclick="setTallyMethod('fixed')">Fixed Plot</button>
+                </div>
               </div>
+              <div class="field tally-value-field"><label id="f_tally_value_label">${tallyMethod==='fixed'?'Trees Fixed Plot (1/n acre)':'Variable BAF (ft²/ac)'}</label><input id="f_tally_value" type="number" value="${escapeAttr(tallyValue)}" step="${tallyMethod==='fixed'?'1':'0.1'}" placeholder="${tallyMethod==='fixed'?'e.g. 5':'e.g. 20'}" ${tallyMethod==='fixed'?'oninput="updateTreeTallyRadiusHint()"':''}></div>
+              <div class="field tally-radius-field" id="f_tally_radius_field" ${tallyMethod==='fixed'?'':'hidden'}><label>Fixed Plot Radius</label><span id="f_tally_radius_hint" class="muted radius-readout">${fixedTallyHint}</span></div>
             </div>
-            <div class="field tally-value-field"><label id="f_tally_value_label">${tallyMethod==='fixed'?'Trees Fixed Plot (1/n acre)':'Variable BAF (ft²/ac)'}</label><input id="f_tally_value" type="number" value="${escapeAttr(tallyValue)}" step="${tallyMethod==='fixed'?'1':'0.1'}" placeholder="${tallyMethod==='fixed'?'e.g. 5':'e.g. 20'}" ${tallyMethod==='fixed'?'oninput="updateTreeTallyRadiusHint()"':''}></div>
-            <div class="field tally-radius-field" id="f_tally_radius_field" ${tallyMethod==='fixed'?'':'hidden'}><label>Fixed Plot Radius</label><span id="f_tally_radius_hint" class="muted radius-readout">${fixedTallyHint}</span></div>
-          </div>
-        </section>
-        <div class="sampling-section-divider" role="separator" aria-orientation="vertical"></div>
-        <section class="sampling-panel seedling-sampling-section" aria-labelledby="seedlingHeading">
-          <div class="sampling-heading seedling-heading" id="seedlingHeading">Seedling/Sapling</div>
-          <div class="row sampling-fields-row seedling-sampling-row">
-            <div class="field seedling-fixed-field"><label>Fixed Plot (1/N Acre)</label><input id="f_denom" type="number" value="${s.denom||'100'}" step="1" oninput="updateStandRadiusHint()"></div>
-            <div class="field seedling-radius-field"><label>Equivalent Radius</label><span id="f_radius_hint" class="muted radius-readout">1/${s.denom||'100'} acre = ${fractionToRadius(s.denom||'100').toFixed(2)} ft radius</span></div>
-          </div>
-        </section>
-      </div>
-      <div class="divider sampling-to-dbh-divider"></div>
+          </section>
+          <div class="sampling-section-divider" aria-hidden="true"></div>
+          <section class="sampling-panel dbh-break-section" aria-label="DBH Break">
+            <div class="field dbh-break-field">
+              <label class="sampling-heading dbh-break-heading" for="f_brkdbh">DBH Break (in)</label>
+              <input id="f_brkdbh" type="number" value="${escapeAttr(formatDbhBreakValue(s.brk_dbh))}" step="0.1" inputmode="decimal" onblur="formatDbhBreakInput(this)" aria-describedby="f_brkdbh_help" aria-label="DBH Break in inches, entered as Actual DBH" title="DBH Break - enter as Actual DBH - regardless of RealDBH or IDBH entry mode. At/above the break = tally tree with selected method; below the break = seedling/sapling fixed plot.">
+              <span id="f_brkdbh_help" class="muted dbh-break-note">Enter as Actual DBH (RealDBH), even when IDBH is selected.</span>
+            </div>
+          </section>
+          <div class="sampling-section-divider" aria-hidden="true"></div>
+          <section class="sampling-panel seedling-sampling-section" aria-labelledby="seedlingHeading">
+            <div class="sampling-heading seedling-heading" id="seedlingHeading">Nested seedling/sapling plot:</div>
+            <div class="row sampling-fields-row seedling-sampling-row">
+              <div class="field seedling-fixed-field"><label>Fixed Plot (1/N Acre)</label><input id="f_denom" type="number" value="${s.denom||'100'}" step="1" oninput="updateStandRadiusHint()"></div>
+              <div class="field seedling-radius-field"><label>Equivalent Radius</label><span id="f_radius_hint" class="muted radius-readout">1/${s.denom||'100'} acre = ${fractionToRadius(s.denom||'100').toFixed(2)} ft radius</span></div>
+            </div>
+          </section>
+        </div>
+      </section>
+      <div class="divider sampling-design-divider"></div>
       <div class="row dbh-site-row">
         <div class="field dbh-mode-field"><label>DBH Entry Mode</label>
           <div class="method-toggle">
@@ -2160,7 +2314,6 @@ function render(){
             <button type="button" id="dbhbtn_idbh" class="${s.dbh_mode==='idbh'?'active':''}" onclick="setDbhMode('idbh')" title="Enter Integer DBH, example: for 5.4&quot; tree, enter 54, for 10.0&quot; tree, enter 100">IDBH</button>
           </div>
         </div>
-        <div class="field dbh-break-field"><label>DBH Break (in)</label><input id="f_brkdbh" type="number" value="${s.brk_dbh||'5'}" step="0.1" title="At/above DBH Break = tally tree with selected method; below DBH Break = seedling/sapling fixed plot"></div>
         <div class="field site-species-field"><label for="f_site_species">Site Species</label><select id="f_site_species" data-current-value="${escapeAttr(s.site_species||'')}" onchange="onSpeciesDropdownChange('site',this)" ${s.variant?'':'disabled'}>${speciesDropdownOptions(s,s.site_species,'site')}</select></div>
         <div class="field site-index-field"><label for="f_site_index">Site Index</label><input id="f_site_index" type="number" step="1" inputmode="numeric" value="${escapeAttr(s.site_index||'')}"></div>
       </div>
@@ -2244,8 +2397,8 @@ function render(){
           <div class="field" style="flex:0 0 64px;"><label>Age</label><input id="t_age" type="number" step="1" placeholder="opt"></div>
           <div class="field" style="flex:0 0 132px;"><label>Dmg 1</label><select id="t_dmg1" onchange="onDamageChange(1)">${damageOptions(activeStand.variant,'')}</select></div>
           <div class="field" style="flex:0 0 62px;"><label>Sev 1</label><span id="t_sevcell1" style="display:block;">${severityFieldHTML(1,0,'')}</span></div>
-          <div class="field" style="flex:0 0 132px;"><label>Dmg 2</label><select id="t_dmg2" onchange="onDamageChange(2)">${damageOptions(activeStand.variant,'')}</select></div>
-          <div class="field" style="flex:0 0 62px;"><label>Sev 2</label><span id="t_sevcell2" style="display:block;">${severityFieldHTML(2,0,'')}</span></div>
+          <div class="field secondary-damage-field" id="t_dmg2_field" style="flex:0 0 132px;" hidden><label>Dmg 2</label><select id="t_dmg2" onchange="onDamageChange(2)">${damageOptions(activeStand.variant,'')}</select></div>
+          <div class="field secondary-damage-field" id="t_sev2_field" style="flex:0 0 62px;" hidden><label>Sev 2</label><span id="t_sevcell2" style="display:block;">${severityFieldHTML(2,0,'')}</span></div>
           <div class="field" style="flex:0 0 auto;"><label>&nbsp;</label><button onclick="addTree()" ${standReady?'':'disabled aria-disabled="true" title="Save Stand Info first"'}>+ Add Tree</button></div>
         </div>
       </div>
@@ -2256,7 +2409,7 @@ function render(){
           <tr><th>Tree #</th><th>Species</th><th>Status</th><th>DBH</th><th>Ht</th><th>CR</th><th>Count</th><th>Age</th><th>Dmg 1</th><th>Dmg 2</th><th></th></tr>
           ${plotTrees.map(t=>{const sp=spList.find(x=>x[0]===t.species);return `
           <tr>
-            <td><strong>${t.tree_id}</strong></td>
+            <td><strong>${t.tree_id}</strong>${seedlingSaplingIcon(t,activeStand)}</td>
             <td>${t.species}${sp?' — '+sp[1]:''}</td>
             <td>${t.status}</td>
             <td>${t.dbh}</td><td>${t.ht}</td><td>${t.crown_ratio||''}</td>
@@ -2348,7 +2501,7 @@ WL  western larch"></textarea>
           html+=`<div class="plotcard"><strong>Plot ${p.plot_id}</strong> <span class="muted">${trees.length} trees</span>`;
           if(trees.length){
             html+=`<table><tr><th>#</th><th>Sp</th><th>Status</th><th>DBH</th><th>Ht</th><th>CR%</th><th>Count</th><th>Age</th></tr>
-              ${trees.map(t=>`<tr><td>${t.tree_id}</td><td>${t.species}</td><td>${t.status}</td><td>${t.dbh}</td><td>${t.ht}</td><td>${t.crown_ratio}</td><td>${t.count||1}</td><td>${t.age||''}</td></tr>`).join("")}</table>`;
+              ${trees.map(t=>`<tr><td>${t.tree_id}${seedlingSaplingIcon(t,s)}</td><td>${t.species}</td><td>${t.status}</td><td>${t.dbh}</td><td>${t.ht}</td><td>${t.crown_ratio}</td><td>${t.count||1}</td><td>${t.age||''}</td></tr>`).join("")}</table>`;
           }
           html+=`</div>`;
         });

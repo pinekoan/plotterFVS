@@ -212,24 +212,29 @@ input[type="checkbox"],input[type="radio"]{accent-color:var(--accent);}
   .choice-dialog-actions button{width:100%;}
 }
 
-/* v1.6.0 sampling layout, site controls, references, and opt-in species search */
+/* Sampling design, site controls, references, and opt-in dropdown search */
+.sampling-design-section{margin-top:16px;}
+.sampling-design-heading{margin:0 0 9px;font-size:15px;font-weight:800;line-height:1.25;color:var(--ink);}
 .sampling-combined-row{
-  display:grid;grid-template-columns:minmax(0,1.55fr) 2px minmax(340px,.9fr);gap:16px;
-  align-items:stretch;margin-top:13px;
+  display:grid;grid-template-columns:minmax(0,1.45fr) 2px minmax(138px,.38fr) 2px minmax(300px,.85fr);gap:14px;
+  align-items:stretch;
 }
 .sampling-panel{min-width:0;padding:12px 14px 14px;border:1px solid #e3e9e3;border-radius:10px;background:#fbfcfb;}
 .sampling-heading{margin:0 0 10px;font-size:14px;font-weight:800;color:var(--accent-d);letter-spacing:.01em;}
 .seedling-heading{font-size:14px;}
 .sampling-fields-row{align-items:flex-end;}
 .sampling-section-divider{width:2px;min-height:100%;border-radius:2px;background:linear-gradient(180deg,var(--line),#8fa991 18%,#8fa991 82%,var(--line));}
-.sampling-to-dbh-divider{margin-top:15px;margin-bottom:12px;}
+.sampling-design-divider{margin-top:15px;margin-bottom:12px;}
 .tally-method-field{flex:0 1 250px;min-width:220px;}
 .tally-value-field{flex:0 1 200px;min-width:180px;}
 .tally-radius-field{flex:1 1 220px;min-width:205px;}
 .tally-radius-field[hidden]{display:none!important;}
+.dbh-break-section{display:flex;align-items:flex-start;}
+.dbh-break-field{flex:1 1 auto;min-width:0;width:100%;}
+.dbh-break-heading{display:block;margin:0 0 10px;text-transform:none;}
+.dbh-break-note{display:block;margin-top:7px;font-size:11px;line-height:1.35;}
 .dbh-site-row{align-items:flex-end;margin-bottom:10px;}
 .dbh-mode-field{flex:0 1 215px;min-width:195px;}
-.dbh-break-field{flex:0 0 135px;min-width:125px;}
 .site-species-field{flex:1 1 300px;min-width:230px;}
 .site-index-field{flex:0 0 115px;min-width:105px;}
 .seedling-fixed-field{flex:0 1 175px;min-width:160px;}
@@ -254,21 +259,26 @@ input[type="checkbox"],input[type="radio"]{accent-color:var(--accent);}
 
 .state-boundary{shape-rendering:geometricPrecision;stroke-linecap:round;stroke-linejoin:round;}
 .variant-boundary{shape-rendering:geometricPrecision;stroke-linecap:round;stroke-linejoin:round;}
+.secondary-damage-field[hidden]{display:none!important;}
+.seedling-tree-icon{display:inline-block;margin-left:4px;font-size:1.05em;line-height:1;vertical-align:-.08em;cursor:help;}
 
-@media (max-width:980px){
+@media (max-width:1080px){
   .sampling-combined-row{grid-template-columns:1fr;gap:12px;}
   .sampling-section-divider{width:100%;height:2px;min-height:2px;background:linear-gradient(90deg,var(--line),#8fa991 18%,#8fa991 82%,var(--line));}
 }
 
 @media (max-width:720px){
-  .sampling-combined-row{margin-top:12px;gap:10px;}
+  .sampling-design-section{margin-top:14px;}
+  .sampling-design-heading{font-size:16px;margin-bottom:8px;}
+  .sampling-combined-row{gap:10px;}
   .sampling-panel{padding:11px;}
   .sampling-heading{font-size:15px;}
   .tally-method-field,.tally-value-field,.tally-radius-field,.dbh-mode-field,.dbh-break-field,.site-species-field,.site-index-field,.seedling-fixed-field,.seedling-radius-field{flex:1 1 100%!important;min-width:0!important;}
+  .sampling-fields-row>.field{flex:1 1 100%!important;min-width:0!important;}
   .tally-method-toggle{width:100%;}
   .tally-method-toggle button{font-size:13px;padding-left:7px;padding-right:7px;}
   .radius-readout{width:100%;min-height:44px;white-space:normal;}
-  .sampling-to-dbh-divider{margin-top:14px;}
+  .sampling-design-divider{margin-top:14px;}
   .dbh-site-row>.field{flex:1 1 100%!important;min-width:0!important;}
   .species-search-dialog{max-height:calc(100dvh - 20px);padding:12px;border-radius:12px;}
   .species-search-header button{min-height:38px;}
